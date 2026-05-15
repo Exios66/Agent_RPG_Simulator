@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from agent_rpg.model_catalog import DEFAULT_INSTRUCT_MODEL_ID
 from pydantic import BaseModel, Field
 
 BackendName = Literal["auto", "hf_inference", "transformers_local"]
@@ -16,8 +17,8 @@ class AgentConfig(BaseModel):
     prompt_template_id: str | None = None
     prompt_variables: dict[str, Any] = Field(default_factory=dict)
     model_id: str = Field(
-        default="HuggingFaceH4/zephyr-7b-beta",
-        description="Hub model id for inference",
+        default=DEFAULT_INSTRUCT_MODEL_ID,
+        description="Hub model id for inference (per-agent; use multi_model.assign_models_to_agents for pools)",
     )
     backend: BackendName = "auto"
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)

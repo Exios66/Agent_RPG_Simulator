@@ -31,7 +31,7 @@ Optional extras (same tiers via pyproject):
 
 ## Hugging Face token
 
-Set `HF_TOKEN` in your environment for remote inference (never commit tokens).
+Set `HF_TOKEN` in your environment for remote inference (never commit tokens). For local notebooks you can also put the token on the **first line** of **`hf_token.txt`** at the repo root (that filename is gitignored).
 
 - Copy [`.env.example`](.env.example) to `.env` and set `HF_TOKEN` there. The `agent-rpg` CLI loads `.env` automatically when `python-dotenv` is installed (`requirements-notebooks.txt` / `pip install -e '.[notebooks]'`).
 - In notebooks, call `load_dotenv()` as in the template below.
@@ -80,6 +80,8 @@ report.write_markdown(out / "report.md", scenario=scenario)
 
 `scenario_json_schema()` returns the JSON Schema for `ScenarioConfig` (for editors and tooling).
 
+**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated small-instruct list live in `agent_rpg.model_catalog` (default Hub id: **Llama 3.1 8B Instruct**).
+
 Procedural scenarios: `build_random_scenario(seed=...)` returns a new valid `ScenarioConfig` each time (see `notebooks/06_full_randomized_simulation.ipynb` and the full tour in `notebooks/07_simulation_exemplar.ipynb`).
 
 ## Notebooks
@@ -94,9 +96,10 @@ Under `notebooks/`:
 | `04_local_transformers_optional.ipynb` | Optional `[local]` backend |
 | `05_reporting_and_metrics.ipynb` | Reports and simple plots |
 | `06_full_randomized_simulation.ipynb` | **Procedural** world/agents/events/orchestration + full mock (or HF) run + report |
-| `07_simulation_exemplar.ipynb` | **Full walkthrough** of every simulation element + **`SIMULATION_CONFIG`** tailored randomized run |
+| `07_simulation_exemplar.ipynb` | **Full walkthrough** of every simulation element + **`SIMULATION_CONFIG`** tailored randomized run (incl. optional **`model_pool`**) |
+| `08_live_hf_spectator.ipynb` | **Live HF** multi-model run with **ipywidgets** model pool + **`on_event`** real-time spectator feed |
 
-**Recommended:** open **`07_simulation_exemplar.ipynb`** first for the complete narrative; **`06`** is a shorter env-var-driven variant.
+**Recommended:** open **`07_simulation_exemplar.ipynb`** first for the complete narrative; **`06`** is a shorter env-var-driven variant. For **live** Hub inference with per-agent models and a streaming-style transcript, use **`08_live_hf_spectator.ipynb`** (requires `HF_TOKEN` and Hub access to the selected models).
 
 Execute notebooks end-to-end (requires a working Jupyter kernel):
 
@@ -118,6 +121,7 @@ Live Hugging Face smoke test (optional):
 ```bash
 export RUN_HF_LIVE=1
 export HF_TOKEN=...
+# optional: HF_LIVE_MODEL=HuggingFaceH4/zephyr-7b-beta  (defaults to Llama 3.1 8B Instruct)
 pytest tests/test_hf_live.py -m live_hf
 ```
 

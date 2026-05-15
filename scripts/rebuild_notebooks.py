@@ -356,6 +356,13 @@ except Exception as e:
     spec.loader.exec_module(mod)
     _write("07_simulation_exemplar.ipynb", mod.build_cells(BOOT))
 
+    spectator_path = Path(__file__).resolve().parent / "spectator_08.py"
+    spec8 = importlib.util.spec_from_file_location("spectator_08", spectator_path)
+    mod8 = importlib.util.module_from_spec(spec8)
+    assert spec8.loader is not None
+    spec8.loader.exec_module(mod8)
+    _write("08_live_hf_spectator.ipynb", mod8.build_cells(BOOT))
+
 
 if __name__ == "__main__":
     main()

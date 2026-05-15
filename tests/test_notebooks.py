@@ -14,6 +14,7 @@ NOTEBOOKS = [
     ROOT / "notebooks" / "05_reporting_and_metrics.ipynb",
     ROOT / "notebooks" / "06_full_randomized_simulation.ipynb",
     ROOT / "notebooks" / "07_simulation_exemplar.ipynb",
+    ROOT / "notebooks" / "08_live_hf_spectator.ipynb",
 ]
 
 

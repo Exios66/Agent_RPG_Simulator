@@ -6,6 +6,7 @@ import random
 import uuid
 from typing import Literal
 
+from agent_rpg.model_catalog import DEFAULT_INSTRUCT_MODEL_ID
 from agent_rpg.schemas.agent import AgentConfig
 from agent_rpg.schemas.orchestration import OrchestrationConfig
 from agent_rpg.schemas.scenario import ScenarioConfig
@@ -89,7 +90,7 @@ def build_random_scenario(
     seed: int | None = None,
     num_agents: int | None = None,
     max_rounds: int | None = None,
-    model_id: str = "HuggingFaceH4/zephyr-7b-beta",
+    model_id: str | None = None,
     turn_order: Literal["round_robin", "random", "reactive"] | None = None,
 ) -> ScenarioConfig:
     """
@@ -98,6 +99,7 @@ def build_random_scenario(
     Relationships only reference other agents in the same scenario (plus optional narrator).
     """
     rng = random.Random(seed)
+    mid = model_id or DEFAULT_INSTRUCT_MODEL_ID
     n = num_agents if num_agents is not None else rng.randint(2, 5)
     n = max(2, min(n, 8))
 
@@ -141,7 +143,7 @@ def build_random_scenario(
                 occupation=rng.choice(_OCCUPATIONS),
                 prompt_template_id="default",
                 prompt_variables={"goal": rng.choice(_GOALS)},
-                model_id=model_id,
+                model_id=mid,
                 backend="auto",
                 temperature=round(rng.uniform(0.35, 0.95), 2),
                 max_new_tokens=rng.choice([128, 192, 256, 320]),
@@ -189,7 +191,7 @@ def build_random_scenario(
         enable_thought_phase=thought,
         memory_turns=rng.choice([12, 16, 20, 24]),
         stop_phrase=stop,
-        reactive_router_model_id=model_id if order == "reactive" else None,
+        reactive_router_model_id=mid if order == "reactive" else None,
     )
 
     return ScenarioConfig(world=world, agents=agents, orchestration=orch)

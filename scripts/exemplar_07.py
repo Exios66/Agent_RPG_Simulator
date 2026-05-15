@@ -205,7 +205,9 @@ def build_cells(boot: str) -> list:
             "| `num_agents` | `2–8` or `None` (random 2–5) |\n"
             "| `max_rounds` | cap rounds or `None` (random 2–4) |\n"
             "| `turn_order` | `'round_robin'` / `'random'` / `'reactive'` / `None` (random) |\n"
-            "| `model_id` | Hub model for every agent in this procedural run |\n"
+            "| `model_id` | Hub model passed into `build_random_scenario` (baseline before pool assignment) |\n"
+            "| `model_pool` | optional list of Hub ids; when non-empty, agents get different models via `assign_models_to_agents` |\n"
+            "| `model_assignment_strategy` | `'rotate'` / `'shuffle'` / `'random'` (used with `model_pool`) |\n"
             "| `enable_thought_phase` | `True` / `False` / `None` (keep generator default) |\n"
             "| `cap_max_new_tokens` | upper bound per agent after generation |\n"
             "| `use_hf_if_token` | if `HF_TOKEN` set, use HF backend; else mock |\n"
@@ -220,7 +222,12 @@ def build_cells(boot: str) -> list:
             "    \"num_agents\": 4,\n"
             "    \"max_rounds\": 3,\n"
             "    \"turn_order\": \"round_robin\",\n"
-            "    \"model_id\": \"HuggingFaceH4/zephyr-7b-beta\",\n"
+            "    \"model_id\": \"meta-llama/Meta-Llama-3.1-8B-Instruct\",\n"
+            "    \"model_pool\": [\n"
+            "        \"meta-llama/Meta-Llama-3.1-8B-Instruct\",\n"
+            "        \"HuggingFaceH4/zephyr-7b-beta\",\n"
+            "    ],\n"
+            "    \"model_assignment_strategy\": \"rotate\",\n"
             "    \"enable_thought_phase\": False,\n"
             "    \"cap_max_new_tokens\": 200,\n"
             "    \"use_hf_if_token\": False,\n"
@@ -237,6 +244,9 @@ def build_cells(boot: str) -> list:
             "details, and hyperparameters. Values from **`SIMULATION_CONFIG`** override the RNG where set."
         ),
         new_code_cell(
+            "import random as _rnd\n"
+            "\n"
+            "from agent_rpg.multi_model import assign_models_to_agents, set_router_model_if_reactive\n"
             "from agent_rpg.random_scenario import build_random_scenario\n"
             "\n"
             "try:\n"
@@ -256,6 +266,12 @@ def build_cells(boot: str) -> list:
             ")\n"
             "if SIMULATION_CONFIG.get(\"enable_thought_phase\") is not None:\n"
             "    scenario.orchestration.enable_thought_phase = SIMULATION_CONFIG[\"enable_thought_phase\"]\n"
+            "pool = SIMULATION_CONFIG.get(\"model_pool\") or []\n"
+            "if pool:\n"
+            "    strat = SIMULATION_CONFIG.get(\"model_assignment_strategy\") or \"rotate\"\n"
+            "    rs = rng_seed if isinstance(rng_seed, int) else _rnd.randint(1, 10**9)\n"
+            "    assign_models_to_agents(scenario, pool, strategy=strat, rng=_rnd.Random(rs))\n"
+            "    set_router_model_if_reactive(scenario, pool[0])\n"
             "cap = SIMULATION_CONFIG.get(\"cap_max_new_tokens\")\n"
             "if cap is not None:\n"
             "    for ag in scenario.agents:\n"
@@ -265,7 +281,9 @@ def build_cells(boot: str) -> list:
             "print(\"title:\", scenario.world.title)\n"
             "print(\"agents:\", [a.display_name for a in scenario.agents])\n"
             "print(\"turn_order:\", scenario.orchestration.turn_order)\n"
-            "print(\"rounds:\", scenario.orchestration.max_rounds or scenario.world.max_rounds)"
+            "print(\"rounds:\", scenario.orchestration.max_rounds or scenario.world.max_rounds)\n"
+            "for ag in scenario.agents:\n"
+            '    print(f"  model: {ag.agent_id} -> {ag.model_id}")'
         ),
         # --- Step 13 run ---
         new_markdown_cell(
@@ -355,7 +373,8 @@ def build_cells(boot: str) -> list:
         new_markdown_cell(
             "### Next steps\n"
             "- Tweak **`SIMULATION_CONFIG`** and re-run from **Step 12** onward.  \n"
-            "- Point **`model_id`** at any Hub chat model your Inference plan supports.  \n"
+            "- Point **`model_id`** / **`model_pool`** at Hub instruct models your Inference plan supports (see `agent_rpg.model_catalog`).  \n"
+            "- For a **live multi-model spectator** notebook, open **`08_live_hf_spectator.ipynb`**.  \n"
             "- Copy a finished **`events.jsonl`** into analytics tools, or query the optional SQLite mirror from the CLI.  \n"
             "\n"
             "Regenerate notebook files from the repo: `python scripts/rebuild_notebooks.py`."
