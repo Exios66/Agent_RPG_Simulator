@@ -153,7 +153,15 @@ class SimulationEngine:
                     active_events_text=ev_text,
                     round_index=round_ix,
                 )
-                convo = "\n".join(transcript[-orch.memory_turns * 4 :]) if transcript else "(silence so far)"
+                # ``transcript[-0:]`` is the full list in Python (``-0`` == ``0``), so ``memory_turns == 0``
+                # must not use a negative slice — it would mean "unbounded memory" instead of none.
+                keep_lines = orch.memory_turns * 4
+                if not transcript:
+                    convo = "(silence so far)"
+                elif keep_lines <= 0:
+                    convo = ""
+                else:
+                    convo = "\n".join(transcript[-keep_lines:])
                 user_tail = (
                     f"Conversation so far:\n{convo}\n\n{_JSON_INSTRUCTION}\n"
                     f"If you make a major decision, prefix an important line inside `say` with DECISION: "
