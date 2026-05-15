@@ -18,7 +18,13 @@ def build_cells(boot: str) -> list:
             "`pip install -e '.[notebooks]'`, and models your account can call (some gated repos need license acceptance on the Hub).\n"
             "\n"
             "> Default base model in the library is **Llama 3.1 8B Instruct**; this notebook uses the "
-            "**curated small instruct pool** from `agent_rpg.model_catalog`."
+            "**curated small instruct pool** from `agent_rpg.model_catalog`.\n"
+            "\n"
+            "> **Import issues after `git pull`?** Use **Kernel → Restart**, then run cells from the top "
+            "so Jupyter drops a stale `agent_rpg` from memory.\n"
+            "\n"
+            "> **HTTP 402 from the Hub?** That is billing / included Inference credits exhausted — see "
+            "[HF billing settings](https://huggingface.co/settings/billing), or use mock/local backends for free development runs."
         ),
         new_code_cell(boot),
         new_markdown_cell("## 1 — Imports and environment"),

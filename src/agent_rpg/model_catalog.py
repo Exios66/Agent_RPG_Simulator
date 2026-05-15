@@ -12,12 +12,12 @@ class ModelEntry(TypedDict):
 
 
 # Default for new agents / YAML omissions (Llama 3.1 8B Instruct).
-DEFAULT_INSTRUCT_MODEL_ID: str = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+DEFAULT_INSTRUCT_MODEL_ID: str = "meta-llama/Llama-3.1-8B-Instruct"
 
 # User-selectable pool: instruct-tuned, relatively modest size; availability depends on HF plan.
 SMALL_INSTRUCT_MODELS: list[ModelEntry] = [
     {
-        "id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "id": "meta-llama/Llama-3.1-8B-Instruct",
         "label": "Llama 3.1 8B Instruct (default)",
         "approx_params": "8B",
     },

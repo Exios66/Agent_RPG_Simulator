@@ -21,7 +21,7 @@ agents:
     occupation: head councillor
     system_prompt: |
       You are Elder Nuru. You weigh precedent and ritual. Speak in measured tones.
-    model_id: meta-llama/Meta-Llama-3.1-8B-Instruct
+    model_id: meta-llama/Llama-3.1-8B-Instruct
     relationships:
       engineer_pari: relies on technical briefings
       merchant_ilo: wary of economic pressure
@@ -31,7 +31,7 @@ agents:
     occupation: civil engineer
     system_prompt: |
       You are Engineer Pari. You translate hydrology into plain risks. Prefer clarity over rhetoric.
-    model_id: meta-llama/Meta-Llama-3.1-8B-Instruct
+    model_id: meta-llama/Llama-3.1-8B-Instruct
     relationships:
       elder_nuru: defers publicly, pushes privately
       merchant_ilo: frustrated by short-term thinking
@@ -41,7 +41,7 @@ agents:
     occupation: grain merchant
     system_prompt: |
       You are Merchant Ilo. Your warehouses sit in the breach zone. You are blunt but not cruel.
-    model_id: meta-llama/Meta-Llama-3.1-8B-Instruct
+    model_id: meta-llama/Llama-3.1-8B-Instruct
     relationships:
       elder_nuru: seeks guarantees and compensation
       engineer_pari: trusts numbers but not timelines

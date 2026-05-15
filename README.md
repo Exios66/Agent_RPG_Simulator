@@ -41,6 +41,10 @@ from dotenv import load_dotenv
 load_dotenv()
 ```
 
+### Inference credits (HTTP 402)
+
+Serverless **Inference Providers** (the default `InferenceClient` router) are billed against your Hugging Face account. If you see **HTTP 402 Payment Required**, included credits are exhausted until you add prepaid credits, upgrade (e.g. PRO), or reduce usage. For development without the paid router, use **`FakeLLMBackend`** in notebooks, **`pip install -e '.[local]'`** with **`TransformersLocalBackend`**, or fewer agents/rounds/smaller `max_new_tokens`.
+
 ## Run a scenario
 
 ```bash
@@ -80,7 +84,7 @@ report.write_markdown(out / "report.md", scenario=scenario)
 
 `scenario_json_schema()` returns the JSON Schema for `ScenarioConfig` (for editors and tooling).
 
-**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated small-instruct list live in `agent_rpg.model_catalog` (default Hub id: **Llama 3.1 8B Instruct**).
+**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated small-instruct list live in `agent_rpg.model_catalog` (default Hub id: **`meta-llama/Llama-3.1-8B-Instruct`**).
 
 Procedural scenarios: `build_random_scenario(seed=...)` returns a new valid `ScenarioConfig` each time (see `notebooks/06_full_randomized_simulation.ipynb` and the full tour in `notebooks/07_simulation_exemplar.ipynb`).
 
@@ -121,7 +125,7 @@ Live Hugging Face smoke test (optional):
 ```bash
 export RUN_HF_LIVE=1
 export HF_TOKEN=...
-# optional: HF_LIVE_MODEL=HuggingFaceH4/zephyr-7b-beta  (defaults to Llama 3.1 8B Instruct)
+# optional: HF_LIVE_MODEL=meta-llama/Llama-3.1-8B-Instruct  (defaults to same via model_catalog)
 pytest tests/test_hf_live.py -m live_hf
 ```
 
