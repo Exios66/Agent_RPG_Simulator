@@ -1,37 +1,37 @@
 personas:
-- slug: skeptical_scholar
-  archetype: skeptical scholar
-  title: Skeptical Scholar
-- slug: hot_headed_sellsword
-  archetype: hot-headed sellsword
-  title: Hot-Headed Sellsword
-- slug: charming_rogue
-  archetype: charming rogue
-  title: Charming Rogue
-- slug: pragmatic_engineer
-  archetype: pragmatic engineer
-  title: Pragmatic Engineer
-- slug: impatient_merchant
-  archetype: impatient merchant
-  title: Impatient Merchant
 - slug: cautious_elder
   archetype: cautious elder
   title: Cautious Elder
-- slug: idealistic_youth
-  archetype: idealistic youth
-  title: Idealistic Youth
+- slug: charming_rogue
+  archetype: charming rogue
+  title: Charming Rogue
 - slug: cynical_veteran
   archetype: cynical veteran
   title: Cynical Veteran
-- slug: secretive_spy
-  archetype: secretive spy
-  title: Secretive Spy
 - slug: devout_healer
   archetype: devout healer
   title: Devout Healer
 - slug: greedy_alchemist
   archetype: greedy alchemist
   title: Greedy Alchemist
+- slug: hot_headed_sellsword
+  archetype: hot-headed sellsword
+  title: Hot-Headed Sellsword
+- slug: idealistic_youth
+  archetype: idealistic youth
+  title: Idealistic Youth
+- slug: impatient_merchant
+  archetype: impatient merchant
+  title: Impatient Merchant
+- slug: pragmatic_engineer
+  archetype: pragmatic engineer
+  title: Pragmatic Engineer
 - slug: proud_noble
   archetype: proud noble
   title: Proud Noble
+- slug: secretive_spy
+  archetype: secretive spy
+  title: Secretive Spy
+- slug: skeptical_scholar
+  archetype: skeptical scholar
+  title: Skeptical Scholar
