@@ -1,0 +1,36 @@
+slug: example_new_persona
+archetype: example archetype label
+title: Example Title
+tags:
+- tag_one
+- tag_two
+motivations:
+  primary: ''
+  secondary: ''
+  fear: ''
+  surface_goal: ''
+lore:
+  public_face: ''
+  private_truth: ''
+  hooks: []
+methodology:
+  decision_style: ''
+  debate_tactics: []
+  information_habits: ''
+constraints:
+  will_not: []
+  blind_spots: ''
+relationships:
+  default_stance: ''
+  when_trusts: ''
+  when_suspects: ''
+voice:
+  diction: ''
+  patterns: []
+  avoid: []
+prompts:
+  system_directives: []
+  scene_seeds: []
+integration:
+  yaml_agent_fields: {}
+  system_prompt_append: ''

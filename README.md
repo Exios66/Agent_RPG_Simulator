@@ -28,6 +28,7 @@ Optional extras (same tiers via pyproject):
 
 - **Local GPU/CPU models:** `pip install -e '.[local]'` — `TransformersLocalBackend` treats **Device** `auto` as a single CUDA / MPS / CPU placement (avoids Accelerate **disk offload**, which is very slow). For Hugging Face `device_map="auto"` offload on very large checkpoints, set **`AGENT_RPG_INFERENCE_OFFLOAD=1`**.
 - **Notebooks:** `pip install -e '.[notebooks]'`
+- **Personas & prompts (authoring):** see [`prompts_and_personas/`](prompts_and_personas/) — archetype packs aligned with procedural `archetype` strings (`motivations`, `lore`, `methodology`, `voice`, `prompts`, `injection_block.md` for system prompts).
 
 ## Hugging Face token
 
