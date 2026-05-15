@@ -21,6 +21,7 @@ dependencies = [
 local = [
     "transformers>=4.38",
     "torch>=2.1",
+    "accelerate>=0.26",
 ]
 dev = [
     "pytest>=7.4",

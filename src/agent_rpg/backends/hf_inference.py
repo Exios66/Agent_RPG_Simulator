@@ -33,6 +33,19 @@ def _reraise_inference_http_error(exc: HfHubHTTPError) -> None:
             response=resp,
             server_message=getattr(exc, "server_message", None),
         ) from exc
+    if code == 400:
+        detail = str(exc).lower()
+        if "model_not_supported" in detail or "not supported by any provider" in detail:
+            hint = (
+                "\n\n[agent-rpg] HTTP 400: this model id is not enabled on the Hugging Face Inference router for your "
+                "account. Try another entry from `agent_rpg.model_catalog.SMALL_INSTRUCT_MODELS`, browse "
+                "https://huggingface.co/inference/models , or use **Local Transformers** in notebook 08."
+            )
+            raise HfHubHTTPError(
+                str(exc) + hint,
+                response=resp,
+                server_message=getattr(exc, "server_message", None),
+            ) from exc
     raise exc
 
 

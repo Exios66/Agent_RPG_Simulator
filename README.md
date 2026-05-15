@@ -19,14 +19,14 @@ pip install -e '.[dev]'
 | [`requirements.txt`](requirements.txt) | Minimal: remote HF Inference + simulator core |
 | [`requirements-dev.txt`](requirements-dev.txt) | Tests, coverage, nbmake / nbformat |
 | [`requirements-notebooks.txt`](requirements-notebooks.txt) | Jupyter + matplotlib + dotenv |
-| [`requirements-local.txt`](requirements-local.txt) | Local `transformers` + `torch` |
+| [`requirements-local.txt`](requirements-local.txt) | Local `transformers` + `torch` + `accelerate` |
 | [`requirements-all.txt`](requirements-all.txt) | Everything above |
 
 Typical flows: `pip install -r requirements.txt && pip install -e .` then add `-r requirements-dev.txt` for development, or `-r requirements-notebooks.txt` before running notebooks.
 
 Optional extras (same tiers via pyproject):
 
-- **Local GPU/CPU models:** `pip install -e '.[local]'`
+- **Local GPU/CPU models:** `pip install -e '.[local]'` — `TransformersLocalBackend` treats **Device** `auto` as a single CUDA / MPS / CPU placement (avoids Accelerate **disk offload**, which is very slow). For Hugging Face `device_map="auto"` offload on very large checkpoints, set **`AGENT_RPG_INFERENCE_OFFLOAD=1`**.
 - **Notebooks:** `pip install -e '.[notebooks]'`
 
 ## Hugging Face token
@@ -84,7 +84,7 @@ report.write_markdown(out / "report.md", scenario=scenario)
 
 `scenario_json_schema()` returns the JSON Schema for `ScenarioConfig` (for editors and tooling).
 
-**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated small-instruct list live in `agent_rpg.model_catalog` (default Hub id: **`meta-llama/Llama-3.1-8B-Instruct`**).
+**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated open-instruct list live in `agent_rpg.model_catalog` (default Hub id: **`Qwen/Qwen2.5-1.5B-Instruct`**). **Inference Providers** may reject some Hub ids (`model_not_supported`); switch model or use local `TransformersLocalBackend`.
 
 Procedural scenarios: `build_random_scenario(seed=...)` returns a new valid `ScenarioConfig` each time (see `notebooks/06_full_randomized_simulation.ipynb` and the full tour in `notebooks/07_simulation_exemplar.ipynb`).
 
@@ -101,9 +101,9 @@ Under `notebooks/`:
 | `05_reporting_and_metrics.ipynb` | Reports and simple plots |
 | `06_full_randomized_simulation.ipynb` | **Procedural** world/agents/events/orchestration + full mock (or HF) run + report |
 | `07_simulation_exemplar.ipynb` | **Full walkthrough** of every simulation element + **`SIMULATION_CONFIG`** tailored randomized run (incl. optional **`model_pool`**) |
-| `08_live_hf_spectator.ipynb` | **Live HF** multi-model run with **ipywidgets** model pool + **`on_event`** real-time spectator feed |
+| `08_live_hf_spectator.ipynb` | **HF Inference** or **local Transformers**; **pool vs per-agent** model assignment; **`on_event`** spectator feed |
 
-**Recommended:** open **`07_simulation_exemplar.ipynb`** first for the complete narrative; **`06`** is a shorter env-var-driven variant. For **live** Hub inference with per-agent models and a streaming-style transcript, use **`08_live_hf_spectator.ipynb`** (requires `HF_TOKEN` and Hub access to the selected models).
+**Recommended:** open **`07_simulation_exemplar.ipynb`** first for the complete narrative; **`06`** is a shorter env-var-driven variant. For **spectating** a run with **open-access Hub models**, use **`08_live_hf_spectator.ipynb`** (HF Inference needs `HF_TOKEN`; **local** needs `pip install -e '.[local]'`).
 
 Execute notebooks end-to-end (requires a working Jupyter kernel):
 
@@ -125,7 +125,7 @@ Live Hugging Face smoke test (optional):
 ```bash
 export RUN_HF_LIVE=1
 export HF_TOKEN=...
-# optional: HF_LIVE_MODEL=meta-llama/Llama-3.1-8B-Instruct  (defaults to same via model_catalog)
+# optional: HF_LIVE_MODEL=Qwen/Qwen2.5-1.5B-Instruct  (defaults to same via model_catalog)
 pytest tests/test_hf_live.py -m live_hf
 ```
 

@@ -1,4 +1,10 @@
-"""Curated Hugging Face instruct chat models (small / mid-size) for multi-agent simulations."""
+"""Curated Hugging Face instruct chat models for multi-agent simulations.
+
+`SMALL_INSTRUCT_MODELS` lists **open-weights / low-friction** checkpoints: no Meta Llama
+gating, no paid Hub access beyond normal Inference rules. You still need a `HF_TOKEN`
+for remote Inference; for fully offline runs use `TransformersLocalBackend` with the
+same Hub ids (models are downloaded once from the Hub).
+"""
 
 from __future__ import annotations
 
@@ -11,39 +17,32 @@ class ModelEntry(TypedDict):
     approx_params: str
 
 
-# Default for new agents / YAML omissions (Llama 3.1 8B Instruct).
-DEFAULT_INSTRUCT_MODEL_ID: str = "meta-llama/Llama-3.1-8B-Instruct"
+# Default for new agents / YAML omissions — Qwen2.5 1.5B is usually routed on HF Inference;
+# SmolLM2 and other small checkpoints are often absent (`model_not_supported`).
+DEFAULT_INSTRUCT_MODEL_ID: str = "Qwen/Qwen2.5-1.5B-Instruct"
 
-# User-selectable pool: instruct-tuned, relatively modest size; availability depends on HF plan.
+# Open / widely usable instruct models. HF **Inference Providers** only expose a subset of Hub
+# repos; if you see `model_not_supported`, pick another id here, browse
+# https://huggingface.co/inference/models , or use `TransformersLocalBackend` locally.
 SMALL_INSTRUCT_MODELS: list[ModelEntry] = [
     {
-        "id": "meta-llama/Llama-3.1-8B-Instruct",
-        "label": "Llama 3.1 8B Instruct (default)",
-        "approx_params": "8B",
-    },
-    {
-        "id": "mistralai/Mistral-7B-Instruct-v0.3",
-        "label": "Mistral 7B Instruct v0.3",
-        "approx_params": "7B",
-    },
-    {
-        "id": "Qwen/Qwen2.5-7B-Instruct",
-        "label": "Qwen2.5 7B Instruct",
-        "approx_params": "7B",
-    },
-    {
-        "id": "google/gemma-2-2b-it",
-        "label": "Gemma 2 2B IT",
-        "approx_params": "2B",
-    },
-    {
-        "id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        "label": "SmolLM2 1.7B Instruct",
-        "approx_params": "1.7B",
+        "id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "label": "Qwen2.5 1.5B Instruct (default)",
+        "approx_params": "1.5B",
     },
     {
         "id": "HuggingFaceH4/zephyr-7b-beta",
         "label": "Zephyr 7B beta",
+        "approx_params": "7B",
+    },
+    {
+        "id": "Qwen/Qwen2.5-3B-Instruct",
+        "label": "Qwen2.5 3B Instruct",
+        "approx_params": "3B",
+    },
+    {
+        "id": "Qwen/Qwen2.5-7B-Instruct",
+        "label": "Qwen2.5 7B Instruct",
         "approx_params": "7B",
     },
 ]

@@ -20,7 +20,8 @@ from agent_rpg.schemas.scenario import ScenarioConfig
 
 _JSON_INSTRUCTION = (
     "For this turn, reply with a single JSON object only, with keys "
-    '`thought` (string, may be ""), `say` (string), `directed_at` (string agent_id or null).'
+    '`thought` (string, may be ""), `say` (string, must be non-empty in-character dialogue), '
+    "`directed_at` (string agent_id or null)."
 )
 
 
@@ -109,6 +110,10 @@ class SimulationEngine:
                 if e.round_trigger is None or e.round_trigger <= round_ix
             ]
             for e in active_events:
+                # Log each scripted world event only once — when it first becomes active.
+                first_round = 0 if e.round_trigger is None else int(e.round_trigger)
+                if round_ix != first_round:
+                    continue
                 _emit(
                     writer,
                     sql_store,

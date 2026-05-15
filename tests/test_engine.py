@@ -6,6 +6,7 @@ from agent_rpg.backends.fake import FakeLLMBackend
 from agent_rpg.engine import SimulationEngine
 from agent_rpg.loader import load_scenario
 from agent_rpg.logging.jsonl import iter_events_jsonl
+from agent_rpg.schemas.world import BackgroundEvent
 
 
 def _factory(i: int, messages: list[dict[str, str]]) -> str:
@@ -63,6 +64,29 @@ def test_local_backend_missing_raises(tmp_path: Path):
     eng = SimulationEngine(s)
     with pytest.raises(ValueError, match="local_backend"):
         eng.run(backend, output_dir=tmp_path, run_id="x")
+
+
+def test_world_event_emitted_once_when_event_first_activates(tmp_path: Path):
+    """Background beats should not re-log every round after their trigger."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.world.background_events = [
+        BackgroundEvent(id="e_open", description="Doors slam open.", round_trigger=0),
+        BackgroundEvent(id="e_mid", description="A bell rings.", round_trigger=1),
+    ]
+    s.orchestration.max_rounds = 4
+    s.world.max_rounds = 4
+    s.orchestration.enable_thought_phase = False
+
+    def fac(_i: int, _msgs: list[dict[str, str]]) -> str:
+        return '{"thought":"","say":"ok","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="we1")
+    events = iter_events_jsonl(tmp_path / "we1" / "events.jsonl")
+    world_ev = [e for e in events if e.event_type == "world_event"]
+    assert len(world_ev) == 2
+    by_id = {e.payload["event_id"]: e.round for e in world_ev}
+    assert by_id["e_open"] == 0 and by_id["e_mid"] == 1
 
 
 def test_reactive_turn_order_calls_router(tmp_path: Path):

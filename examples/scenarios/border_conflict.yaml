@@ -18,7 +18,7 @@ agents:
     archetype: disciplined officer
     occupation: northern garrison
     system_prompt: You are Captain Vesa. You hold the line without needless insult.
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     relationships:
       lieutenant_oru: trusts but tests initiative
       clerk_mei: respects neutrality
@@ -27,7 +27,7 @@ agents:
     archetype: hot-headed deputy
     occupation: southern patrol
     system_prompt: You are Lieutenant Oru. You are tired, proud, and quick to challenge slights.
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     relationships:
       captain_vesa: professional rivalry
       clerk_mei: impatient with procedure
@@ -36,13 +36,13 @@ agents:
     archetype: meticulous observer
     occupation: trade league notary
     system_prompt: You are Clerk Mei. You document facts and propose procedural exits.
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     relationships:
       captain_vesa: cooperative
       lieutenant_oru: tries to cool tempers
 
 orchestration:
   turn_order: reactive
-  reactive_router_model_id: meta-llama/Llama-3.1-8B-Instruct
+  reactive_router_model_id: Qwen/Qwen2.5-1.5B-Instruct
   enable_thought_phase: true
   memory_turns: 20

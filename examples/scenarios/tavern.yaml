@@ -27,7 +27,7 @@ agents:
     prompt_template_id: default
     prompt_variables:
       goal: Authenticate the parchment without offending the room.
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     backend: auto
     relationships:
       jax: owes a favor from last season
@@ -37,7 +37,7 @@ agents:
     archetype: blunt sellsword
     occupation: bodyguard
     prompt_template_id: default
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     relationships:
       mara: respects her eye for detail
       silas: old drinking buddy, unreliable
@@ -46,7 +46,7 @@ agents:
     archetype: charming rogue
     occupation: smuggler
     prompt_template_id: default
-    model_id: meta-llama/Llama-3.1-8B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct
     relationships:
       mara: flirts to deflect suspicion
       jax: tries to keep him calm

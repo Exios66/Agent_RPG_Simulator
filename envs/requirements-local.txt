@@ -6,3 +6,4 @@
 -r requirements.txt
 transformers>=4.38
 torch>=2.1
+accelerate>=0.26
