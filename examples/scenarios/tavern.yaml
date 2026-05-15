@@ -1,0 +1,58 @@
+world:
+  scenario_id: tavern_dispute
+  title: The Silver Tankard
+  version: "1"
+  setting: A coastal tavern on a stormy evening; patrons argue over a rumored treasure map.
+  backstory: |
+    The innkeeper found a scrap of parchment. A scholar, a sellsword, and a smuggler each claim it
+    belongs to their prior deal. Tensions rise as rain hammers the shutters.
+  worldbuilding_notes: |
+    Magic is rare; most conflicts are social. The town guard is one hour away on horseback.
+  round_duration_narrative: Each round is roughly five minutes of in-world time.
+  max_rounds: 4
+  default_occupations: ["innkeeper", "sailor", "merchant"]
+  background_events:
+    - id: storm
+      description: Thunder rolls; the door blows open briefly.
+      round_trigger: 0
+    - id: guard_rumor
+      description: Someone whispers that the guard captain is asking questions uptown.
+      round_trigger: 2
+
+agents:
+  - agent_id: mara
+    display_name: Mara Keen
+    archetype: skeptical scholar
+    occupation: antiquarian
+    prompt_template_id: default
+    prompt_variables:
+      goal: Authenticate the parchment without offending the room.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    backend: auto
+    relationships:
+      jax: owes a favor from last season
+      silas: distrusts his motives
+  - agent_id: jax
+    display_name: Jax Ironhand
+    archetype: blunt sellsword
+    occupation: bodyguard
+    prompt_template_id: default
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      mara: respects her eye for detail
+      silas: old drinking buddy, unreliable
+  - agent_id: silas
+    display_name: Silas Rook
+    archetype: charming rogue
+    occupation: smuggler
+    prompt_template_id: default
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      mara: flirts to deflect suspicion
+      jax: tries to keep him calm
+
+orchestration:
+  turn_order: round_robin
+  enable_thought_phase: true
+  memory_turns: 24
+  stop_phrase: SCENE_END

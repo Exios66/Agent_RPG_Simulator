@@ -1,0 +1,10 @@
+# Jupyter demos under notebooks/ (matplotlib, dotenv for .env loading in cells).
+#   pip install -r requirements-notebooks.txt
+#   pip install -e .
+
+-r requirements.txt
+jupyter>=1.0
+ipykernel>=6.29
+matplotlib>=3.8
+python-dotenv>=1.0
+ipywidgets>=8.1

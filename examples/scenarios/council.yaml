@@ -1,0 +1,53 @@
+world:
+  scenario_id: river_council
+  title: River Council emergency session
+  version: "1"
+  setting: A wooden hall overlooking a flood-prone river basin.
+  backstory: |
+    Spring melt is early. The council must decide whether to preemptively breach a secondary levee,
+    sacrificing farmland to save the lower town.
+  worldbuilding_notes: |
+    Each councilor represents a different district; decisions need a majority but social cohesion matters.
+  max_rounds: 3
+  background_events:
+    - id: gauge_reading
+      description: The water gauge shows a two-foot rise since dawn.
+      round_trigger: 0
+
+agents:
+  - agent_id: elder_nuru
+    display_name: Elder Nuru
+    archetype: cautious traditionalist
+    occupation: head councillor
+    system_prompt: |
+      You are Elder Nuru. You weigh precedent and ritual. Speak in measured tones.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      engineer_pari: relies on technical briefings
+      merchant_ilo: wary of economic pressure
+  - agent_id: engineer_pari
+    display_name: Engineer Pari
+    archetype: data-driven pragmatist
+    occupation: civil engineer
+    system_prompt: |
+      You are Engineer Pari. You translate hydrology into plain risks. Prefer clarity over rhetoric.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      elder_nuru: defers publicly, pushes privately
+      merchant_ilo: frustrated by short-term thinking
+  - agent_id: merchant_ilo
+    display_name: Merchant Ilo
+    archetype: impatient advocate
+    occupation: grain merchant
+    system_prompt: |
+      You are Merchant Ilo. Your warehouses sit in the breach zone. You are blunt but not cruel.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      elder_nuru: seeks guarantees and compensation
+      engineer_pari: trusts numbers but not timelines
+
+orchestration:
+  # Reproducible random speaker order: pass seed=... to SimulationEngine.run()
+  turn_order: random
+  enable_thought_phase: false
+  memory_turns: 16

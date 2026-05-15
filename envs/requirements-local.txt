@@ -1,0 +1,8 @@
+# Local LLM path: transformers + PyTorch (heavy). Use with scenarios that set
+# agent backend to transformers_local and pass TransformersLocalBackend, or CLI --backend local.
+#   pip install -r requirements-local.txt
+#   pip install -e .
+
+-r requirements.txt
+transformers>=4.38
+torch>=2.1

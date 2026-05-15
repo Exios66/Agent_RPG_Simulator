@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-rpg"
+version = "0.1.0"
+description = "LLM multi-agent RPG scenario simulator with HF Inference and optional local backends"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Agent RPG Simulator" }]
+dependencies = [
+    "pydantic>=2.5",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "huggingface_hub>=0.22",
+]
+
+[project.optional-dependencies]
+local = [
+    "transformers>=4.38",
+    "torch>=2.1",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "nbmake>=1.5",
+    "nbformat>=5.10",
+    "python-dotenv>=1.0",
+]
+notebooks = [
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "matplotlib>=3.8",
+    "python-dotenv>=1.0",
+    "ipywidgets>=8.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/agent-rpg"
+
+[project.scripts]
+agent-rpg = "agent_rpg.cli:main"
+
+[tool.hatch.build]
+sources = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_rpg"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/agent_rpg", "examples", "notebooks", "README.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "live_hf: calls Hugging Face Inference API (requires HF_TOKEN and RUN_HF_LIVE=1)",
+    "nbmake: notebook execution tests",
+]
+
+[tool.coverage.run]
+source = ["agent_rpg"]
+omit = ["*/tests/*"]

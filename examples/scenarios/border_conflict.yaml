@@ -1,0 +1,48 @@
+world:
+  scenario_id: border_incident
+  title: Checkpoint at Greybridge
+  version: "1"
+  setting: A contested trade checkpoint between two provinces.
+  backstory: |
+    A caravan is stopped; each side claims the other's papers are forged. Two officers and a neutral
+    observer must de-escalate before archers on the walls get nervous.
+  max_rounds: 3
+  background_events:
+    - id: horns
+      description: Distant signal horns — reinforcements may arrive within the hour.
+      round_trigger: 1
+
+agents:
+  - agent_id: captain_vesa
+    display_name: Captain Vesa
+    archetype: disciplined officer
+    occupation: northern garrison
+    system_prompt: You are Captain Vesa. You hold the line without needless insult.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      lieutenant_oru: trusts but tests initiative
+      clerk_mei: respects neutrality
+  - agent_id: lieutenant_oru
+    display_name: Lieutenant Oru
+    archetype: hot-headed deputy
+    occupation: southern patrol
+    system_prompt: You are Lieutenant Oru. You are tired, proud, and quick to challenge slights.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      captain_vesa: professional rivalry
+      clerk_mei: impatient with procedure
+  - agent_id: clerk_mei
+    display_name: Clerk Mei
+    archetype: meticulous observer
+    occupation: trade league notary
+    system_prompt: You are Clerk Mei. You document facts and propose procedural exits.
+    model_id: HuggingFaceH4/zephyr-7b-beta
+    relationships:
+      captain_vesa: cooperative
+      lieutenant_oru: tries to cool tempers
+
+orchestration:
+  turn_order: reactive
+  reactive_router_model_id: HuggingFaceH4/zephyr-7b-beta
+  enable_thought_phase: true
+  memory_turns: 20

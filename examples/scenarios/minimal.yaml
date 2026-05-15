@@ -1,0 +1,34 @@
+world:
+  scenario_id: minimal
+  title: Minimal mock scenario
+  version: "1"
+  setting: A quiet test chamber used for integration tests.
+  backstory: Two agents exchange short JSON-formatted lines.
+  max_rounds: 2
+  background_events: []
+
+agents:
+  - agent_id: alice
+    display_name: Alice
+    archetype: scholar
+    occupation: tester
+    system_prompt: |
+      You are Alice in a test simulation. Keep responses brief.
+    model_id: mock/model
+    relationships:
+      bob: study partner
+  - agent_id: bob
+    display_name: Bob
+    archetype: guard
+    occupation: tester
+    system_prompt: |
+      You are Bob in a test simulation. Keep responses brief.
+    model_id: mock/model
+    relationships:
+      alice: trusted colleague
+
+orchestration:
+  turn_order: round_robin
+  max_rounds: 2
+  enable_thought_phase: true
+  memory_turns: 10
