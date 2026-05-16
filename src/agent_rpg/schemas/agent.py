@@ -5,7 +5,7 @@ from typing import Any, Literal
 from agent_rpg.model_catalog import DEFAULT_INSTRUCT_MODEL_ID
 from pydantic import BaseModel, Field
 
-BackendName = Literal["auto", "hf_inference", "transformers_local"]
+BackendName = Literal["auto", "hf_inference", "transformers_local", "openrouter"]
 
 
 class AgentConfig(BaseModel):
@@ -18,7 +18,11 @@ class AgentConfig(BaseModel):
     prompt_variables: dict[str, Any] = Field(default_factory=dict)
     model_id: str = Field(
         default=DEFAULT_INSTRUCT_MODEL_ID,
-        description="Hub model id for inference (per-agent; use multi_model.assign_models_to_agents for pools)",
+        description=(
+            "Model id for the agent's backend: Hub repo id for HF Inference / auto; local path or Hub id for "
+            "transformers_local; OpenRouter model slug (e.g. …:free) when backend is openrouter. "
+            "Use multi_model.assign_models_to_agents for HF pools."
+        ),
     )
     backend: BackendName = "auto"
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)

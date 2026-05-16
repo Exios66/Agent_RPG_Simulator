@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from agent_rpg.backends.hf_inference import HuggingFaceInferenceBackend
+from agent_rpg.backends.openrouter import OpenRouterBackend
 from agent_rpg.engine import SimulationEngine
 from agent_rpg.loader import load_scenario
 
@@ -43,9 +44,9 @@ def main() -> None:
     )
     run_p.add_argument(
         "--backend",
-        choices=("hf", "local"),
+        choices=("hf", "local", "openrouter"),
         default="hf",
-        help="LLM backend: hf=Inference API (HF_TOKEN), local=transformers on this machine",
+        help="LLM backend: hf=Inference API (HF_TOKEN), local=transformers, openrouter=OPENROUTER_API_KEY",
     )
     run_p.add_argument("--seed", type=int, default=None)
 
@@ -55,12 +56,17 @@ def main() -> None:
         rid = args.run_id or str(uuid.uuid4())
 
         local_backend = None
+        openrouter_backend = None
         if args.backend == "local":
             from agent_rpg.backends.transformers_local import TransformersLocalBackend
 
             tb = TransformersLocalBackend()
             default_backend = tb
             local_backend = tb
+        elif args.backend == "openrouter":
+            ob = OpenRouterBackend()
+            default_backend = ob
+            openrouter_backend = ob
         else:
             default_backend = HuggingFaceInferenceBackend(token=os.environ.get("HF_TOKEN"))
 
@@ -72,6 +78,7 @@ def main() -> None:
         out = engine.run(
             default_backend,
             local_backend=local_backend,
+            openrouter_backend=openrouter_backend,
             run_id=rid,
             output_dir=args.output,
             sqlite_path=sqlite_path,
