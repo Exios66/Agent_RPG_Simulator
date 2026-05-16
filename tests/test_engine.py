@@ -109,3 +109,23 @@ def test_reactive_turn_order_calls_router(tmp_path: Path):
     SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="rx")
     assert "router" in calls
     assert "agent" in calls
+
+
+def test_memory_turns_zero_omits_prior_transcript(tmp_path: Path):
+    """``memory_turns == 0`` must not expand to the full history (Python ``seq[-0:]`` is ``seq[:]``)."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.memory_turns = 0
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 2
+    s.world.max_rounds = 2
+
+    def fac(i: int, _msgs: list[dict[str, str]]) -> str:
+        if i < 2:
+            return '{"thought":"","say":"EARLY_UNIQUE_LINE","directed_at":null}'
+        return '{"thought":"","say":"ok","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="m0")
+    assert len(backend.calls) >= 3
+    user3 = backend.calls[2][0][1].get("content", "")
+    assert "EARLY_UNIQUE_LINE" not in user3
