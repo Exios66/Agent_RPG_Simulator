@@ -89,6 +89,30 @@ def test_world_event_emitted_once_when_event_first_activates(tmp_path: Path):
     assert by_id["e_open"] == 0 and by_id["e_mid"] == 1
 
 
+def test_memory_turns_zero_does_not_send_full_transcript(tmp_path: Path):
+    """``memory_turns == 0`` must not use slice ``[-0:]``, which selects the entire transcript."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.memory_turns = 0
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+    s.orchestration.enable_thought_phase = False
+
+    def fac(_i: int, msgs: list[dict[str, str]]) -> str:
+        return '{"thought":"","say":"ok","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="m0")
+    user_contents: list[str] = []
+    for messages, _opts in backend.calls:
+        for m in messages:
+            if m.get("role") == "user":
+                user_contents.append(m["content"])
+    assert user_contents
+    # Every turn should see no prior dialogue (bob must not get ``Alice (alice): ok`` in the tail).
+    for u in user_contents:
+        assert "Conversation so far:\n(silence so far)" in u
+
+
 def test_reactive_turn_order_calls_router(tmp_path: Path):
     s = load_scenario("examples/scenarios/minimal.yaml")
     s.orchestration.turn_order = "reactive"

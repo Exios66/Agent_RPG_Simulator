@@ -153,7 +153,12 @@ class SimulationEngine:
                     active_events_text=ev_text,
                     round_index=round_ix,
                 )
-                convo = "\n".join(transcript[-orch.memory_turns * 4 :]) if transcript else "(silence so far)"
+                # ``transcript[-0:]`` is ``transcript[0:]`` (full history); treat non-positive memory as none.
+                mem_lines = orch.memory_turns * 4
+                if mem_lines <= 0:
+                    convo = "(silence so far)"
+                else:
+                    convo = "\n".join(transcript[-mem_lines:]) if transcript else "(silence so far)"
                 user_tail = (
                     f"Conversation so far:\n{convo}\n\n{_JSON_INSTRUCTION}\n"
                     f"If you make a major decision, prefix an important line inside `say` with DECISION: "
