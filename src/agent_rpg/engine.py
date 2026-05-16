@@ -42,7 +42,14 @@ def _backend_for_agent(
     agent: AgentConfig,
     default: LLMBackend,
     local_backend: LLMBackend | None,
+    openrouter_backend: LLMBackend | None,
 ) -> LLMBackend:
+    if agent.backend == "openrouter":
+        if openrouter_backend is None:
+            raise ValueError(
+                f"Agent {agent.agent_id} uses backend 'openrouter' but no openrouter_backend was passed to SimulationEngine.run()"
+            )
+        return openrouter_backend
     if agent.backend in ("auto", "hf_inference"):
         return default
     if agent.backend == "transformers_local":
@@ -63,6 +70,7 @@ class SimulationEngine:
         backend: LLMBackend,
         *,
         local_backend: LLMBackend | None = None,
+        openrouter_backend: LLMBackend | None = None,
         run_id: str | None = None,
         output_dir: str | Path | None = None,
         sqlite_path: str | Path | None = None,
@@ -133,6 +141,7 @@ class SimulationEngine:
                 agents,
                 backend,
                 local_backend,
+                openrouter_backend,
                 transcript,
                 rng,
                 writer,
@@ -171,7 +180,7 @@ class SimulationEngine:
                     {"role": "user", "content": user_tail},
                 ]
                 model_id = agent.model_id
-                gen_backend = _backend_for_agent(agent, backend, local_backend)
+                gen_backend = _backend_for_agent(agent, backend, local_backend, openrouter_backend)
                 raw = gen_backend.generate(
                     messages,
                     model_id=model_id,
@@ -270,6 +279,7 @@ class SimulationEngine:
         agents: list[AgentConfig],
         backend: LLMBackend,
         local_backend: LLMBackend | None,
+        openrouter_backend: LLMBackend | None,
         transcript: list[str],
         rng: random.Random,
         writer: JsonlEventWriter,
@@ -290,7 +300,7 @@ class SimulationEngine:
         allowed = {a.agent_id for a in agents}
         router_model = orch.reactive_router_model_id or agents[0].model_id
         router_agent = agents[0]
-        router_gen = _backend_for_agent(router_agent, backend, local_backend)
+        router_gen = _backend_for_agent(router_agent, backend, local_backend, openrouter_backend)
         sys = (
             "You are a scene director. Given the list of agent ids and the latest transcript, "
             "choose exactly one agent who should speak next this turn. "

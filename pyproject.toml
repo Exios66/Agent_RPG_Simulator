@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agent-rpg"
 version = "0.1.0"
-description = "LLM multi-agent RPG scenario simulator with HF Inference and optional local backends"
+description = "LLM multi-agent RPG scenario simulator with HF Inference, OpenRouter, and optional local backends"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

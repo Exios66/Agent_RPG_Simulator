@@ -4,6 +4,10 @@
 gating, no paid Hub access beyond normal Inference rules. You still need a `HF_TOKEN`
 for remote Inference; for fully offline runs use `TransformersLocalBackend` with the
 same Hub ids (models are downloaded once from the Hub).
+
+For **OpenRouter** (`OpenRouterBackend`, ``backend: openrouter`` on agents), set each
+agent's ``model_id`` to an OpenRouter model slug from https://openrouter.ai/models (many
+listings expose a ``:free`` variant; availability and quotas are defined by OpenRouter).
 """
 
 from __future__ import annotations

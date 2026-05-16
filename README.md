@@ -1,6 +1,6 @@
 # Agent RPG Simulator
 
-Python package for **multi-agent LLM roleplay simulations**: YAML-defined worlds and agents, pluggable backends (Hugging Face Inference API by default, optional local `transformers`), JSONL event logs, optional SQLite mirror, and reporting helpers.
+Python package for **multi-agent LLM roleplay simulations**: YAML-defined worlds and agents, pluggable backends (Hugging Face Inference API by default, **OpenRouter** remote chat completions, optional local `transformers`), JSONL event logs, optional SQLite mirror, and reporting helpers.
 
 ## Setup
 
@@ -30,11 +30,18 @@ Optional extras (same tiers via pyproject):
 - **Notebooks:** `pip install -e '.[notebooks]'`
 - **Personas & prompts (authoring):** see [`prompts_and_personas/`](prompts_and_personas/) — archetype packs aligned with procedural `archetype` strings (`motivations`, `lore`, `methodology`, `voice`, `prompts`, `injection_block.md` for system prompts).
 
+## OpenRouter API key
+
+Remote inference via [OpenRouter](https://openrouter.ai/) uses the same chat-style prompts as the Hugging Face backend, but each agent's YAML `model_id` must be an **OpenRouter model slug** (see [openrouter.ai/models](https://openrouter.ai/models); many models offer a `:free` tier subject to OpenRouter's rules).
+
+- Set **`OPENROUTER_API_KEY`** in the environment (see [`envs/.env.example`](envs/.env.example)). Optional: **`OPENROUTER_BASE_URL`** (default `https://openrouter.ai/api/v1`), **`OPENROUTER_HTTP_REFERER`**, **`OPENROUTER_APP_TITLE`** for OpenRouter's optional headers — read from the environment by `OpenRouterBackend` in [`src/agent_rpg/backends/openrouter.py`](src/agent_rpg/backends/openrouter.py).
+- CLI: `agent-rpg run ... --backend openrouter` uses `OpenRouterBackend` for agents whose YAML `backend` is `auto` or `hf_inference` (same pattern as HF: the default backend handles those). For **`backend: openrouter`** on specific agents, pass `openrouter_backend=OpenRouterBackend()` into `SimulationEngine.run()` (see [`src/agent_rpg/engine.py`](src/agent_rpg/engine.py) `_backend_for_agent`).
+
 ## Hugging Face token
 
 Set `HF_TOKEN` in your environment for remote inference (never commit tokens). For local notebooks you can also put the token on the **first line** of **`hf_token.txt`** at the repo root (that filename is gitignored).
 
-- Copy [`.env.example`](.env.example) to `.env` and set `HF_TOKEN` there. The `agent-rpg` CLI loads `.env` automatically when `python-dotenv` is installed (`requirements-notebooks.txt` / `pip install -e '.[notebooks]'`).
+- Copy [`envs/.env.example`](envs/.env.example) to `.env` and set `HF_TOKEN` there. The `agent-rpg` CLI loads `.env` automatically when `python-dotenv` is installed (`requirements-notebooks.txt` / `pip install -e '.[notebooks]'`).
 - In notebooks, call `load_dotenv()` as in the template below.
 
 ```python
@@ -44,23 +51,32 @@ load_dotenv()
 
 ### Inference credits (HTTP 402)
 
-Serverless **Inference Providers** (the default `InferenceClient` router) are billed against your Hugging Face account. If you see **HTTP 402 Payment Required**, included credits are exhausted until you add prepaid credits, upgrade (e.g. PRO), or reduce usage. For development without the paid router, use **`FakeLLMBackend`** in notebooks, **`pip install -e '.[local]'`** with **`TransformersLocalBackend`**, or fewer agents/rounds/smaller `max_new_tokens`.
+Serverless **Inference Providers** (the default `InferenceClient` router) are billed against your Hugging Face account. If you see **HTTP 402 Payment Required**, included credits are exhausted until you add prepaid credits, upgrade (e.g. PRO), or reduce usage. For development without the paid router, use **`FakeLLMBackend`** in notebooks, **`pip install -e '.[local]'`** with **`TransformersLocalBackend`**, **`OpenRouterBackend`** (and `OPENROUTER_API_KEY`) with OpenRouter-hosted models, or fewer agents/rounds/smaller `max_new_tokens`.
 
 ## Run a scenario
+
+Example with Hugging Face Inference (example YAMLs under `examples/scenarios/` use Hub-style `model_id` values):
 
 ```bash
 export HF_TOKEN=hf_...
 agent-rpg run examples/scenarios/tavern.yaml --output runs
 ```
 
+With OpenRouter, set `OPENROUTER_API_KEY` and point each agent's `model_id` at an OpenRouter slug (Hub repo ids in the stock scenarios are not valid OpenRouter model names):
+
+```bash
+export OPENROUTER_API_KEY=sk-or-v1-...
+agent-rpg run path/to/your_scenario.yaml --backend openrouter --output runs
+```
+
 Flags:
 
-- `--backend hf` (default) or `--backend local` for `TransformersLocalBackend` on this machine.
+- `--backend hf` (default), `--backend openrouter`, or `--backend local` for `TransformersLocalBackend` on this machine.
 - `--save-sqlite` writes `runs/<run-id>/events.sqlite`.
 - `--sqlite /path/to.db` for an explicit SQLite path.
 - `--run-id my_run` and `--seed 42` for reproducibility (random turn order).
 
-Agents with `backend: transformers_local` in YAML require `SimulationEngine.run(..., local_backend=TransformersLocalBackend())` (or use CLI `--backend local` with a scenario that only uses local-compatible settings).
+Agents with `backend: transformers_local` in YAML require `SimulationEngine.run(..., local_backend=TransformersLocalBackend())` (or use CLI `--backend local` with a scenario that only uses local-compatible settings). Agents with `backend: openrouter` require `SimulationEngine.run(..., openrouter_backend=OpenRouterBackend())`; the CLI sets this automatically when you pass `--backend openrouter`.
 
 ## Library usage
 
@@ -75,10 +91,11 @@ from agent_rpg import (
 )
 from agent_rpg.backends.fake import FakeLLMBackend
 from agent_rpg.backends.hf_inference import HuggingFaceInferenceBackend
+from agent_rpg.backends.openrouter import OpenRouterBackend
 
 scenario = load_scenario("examples/scenarios/minimal.yaml")
 engine = SimulationEngine(scenario)
-out = engine.run(HuggingFaceInferenceBackend(), output_dir="runs")  # or FakeLLMBackend(...)
+out = engine.run(HuggingFaceInferenceBackend(), output_dir="runs")  # or FakeLLMBackend(...) or OpenRouterBackend()
 report = ReportBuilder.from_jsonl(out / "events.jsonl")
 report.write_markdown(out / "report.md", scenario=scenario)
 ```
