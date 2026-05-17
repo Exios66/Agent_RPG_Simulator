@@ -141,6 +141,13 @@ class OpenRouterBackend:
                     obj = json.loads(data)
                 except json.JSONDecodeError:
                     continue
+                if isinstance(obj, dict) and obj.get("error") is not None:
+                    err = obj["error"]
+                    if isinstance(err, dict):
+                        msg = err.get("message") or err.get("code") or json.dumps(err)
+                    else:
+                        msg = str(err)
+                    raise RuntimeError(f"OpenRouter stream error: {msg}") from None
                 for choice in obj.get("choices") or []:
                     delta = choice.get("delta") or {}
                     piece = delta.get("content")
