@@ -110,7 +110,12 @@ class HuggingFaceInferenceBackend:
             completion = client.chat_completion(messages=messages, model=model_id, **extra)
         except HfHubHTTPError as e:
             _reraise_inference_http_error(e)
-        choice = completion.choices[0]
+        choices = getattr(completion, "choices", None) or []
+        if not choices:
+            raise RuntimeError(
+                "Hugging Face chat completion returned no choices; check model_id, provider status, and quotas."
+            )
+        choice = choices[0]
         msg = choice.message
         content = getattr(msg, "content", None)
         if isinstance(content, str):

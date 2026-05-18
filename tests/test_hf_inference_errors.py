@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import httpx
+from unittest.mock import MagicMock, patch
+
 import pytest
 from huggingface_hub.errors import HfHubHTTPError
 
-from agent_rpg.backends.hf_inference import _reraise_inference_http_error
+from agent_rpg.backends.hf_inference import HuggingFaceInferenceBackend, _reraise_inference_http_error
 
 
 def _err(code: int, msg: str = "upstream") -> HfHubHTTPError:
@@ -43,6 +45,19 @@ def test_400_unrelated_reraises_original() -> None:
         _reraise_inference_http_error(err)
     assert info.value is err
     assert "[agent-rpg]" not in str(info.value)
+
+
+def test_generate_non_stream_empty_choices_raises() -> None:
+    """Router must not IndexError when ``choices`` is empty."""
+    completion = MagicMock()
+    completion.choices = []
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        with pytest.raises(RuntimeError, match="no choices"):
+            b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
 
 def test_other_status_reraises_unchained_message() -> None:
