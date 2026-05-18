@@ -17,6 +17,18 @@ def test_generate_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
         b.generate([{"role": "user", "content": "x"}], model_id="m")
 
 
+def test_generate_non_stream_rejects_null_choice() -> None:
+    """``choices: [null]`` must not crash with AttributeError (invalid/mangled JSON)."""
+    payload = {"choices": [None]}
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="invalid choice"):
+            b.generate([{"role": "user", "content": "ping"}], model_id="m")
+
+
 def test_generate_non_stream_parses_message_content() -> None:
     payload = {"choices": [{"message": {"content": '{"say":"hi"}'}}]}
     mock_resp = MagicMock()
