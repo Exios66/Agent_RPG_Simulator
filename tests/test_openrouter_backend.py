@@ -67,6 +67,68 @@ def test_generate_non_stream_json_array_raises_clear_runtime_error() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="m")
 
 
+def test_generate_non_stream_empty_choices_raises() -> None:
+    payload = {"choices": []}
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="no choices"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_non_stream_list_message_content() -> None:
+    """Multimodal-style content blocks must concatenate to a single string."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Hello "},
+                        {"text": "world"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "ping"}], model_id="m")
+
+    assert out == "Hello world"
+
+
+def test_generate_stream_skips_non_dict_choice_entries() -> None:
+    lines = [
+        b'data: {"choices":[null,"not-a-dict",{"delta":{"content":"ok"}}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def close(self) -> None:
+            pass
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=FakeStream(lines)):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
 def test_generate_stream_accumulates_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',
