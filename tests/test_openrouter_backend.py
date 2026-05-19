@@ -35,6 +35,26 @@ def test_generate_non_stream_parses_message_content() -> None:
     assert body["messages"][0]["role"] == "user"
 
 
+def test_generate_non_stream_invalid_json_raises_clear_runtime_error() -> None:
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = b"not json at all"
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="invalid JSON"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_non_stream_json_array_raises_clear_runtime_error() -> None:
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = b"[]"
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="not an object"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
 def test_generate_stream_accumulates_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',
