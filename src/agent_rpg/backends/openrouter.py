@@ -130,10 +130,17 @@ class OpenRouterBackend:
                 )
         finally:
             resp.close()
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"OpenRouter returned non-object JSON: {payload!r}")
         choices = payload.get("choices") or []
         if not choices:
             raise RuntimeError(f"OpenRouter returned no choices: {payload!r}")
-        return _content_from_choice(choices[0])
+        first = choices[0]
+        if not isinstance(first, dict):
+            raise RuntimeError(
+                f"OpenRouter returned invalid choice (expected object, got {type(first).__name__!r}): {payload!r}"
+            )
+        return _content_from_choice(first)
 
     def _read_sse_stream(self, resp: Any, chunk_callback: Callable[[str], None] | None) -> str:
         parts: list[str] = []
@@ -152,6 +159,8 @@ class OpenRouterBackend:
                 except json.JSONDecodeError:
                     continue
                 for choice in obj.get("choices") or []:
+                    if not isinstance(choice, dict):
+                        continue
                     delta = choice.get("delta") or {}
                     piece = delta.get("content")
                     if isinstance(piece, str) and piece:
