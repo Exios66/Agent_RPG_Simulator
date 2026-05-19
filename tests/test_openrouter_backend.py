@@ -104,3 +104,34 @@ def test_generate_stream_accumulates_delta() -> None:
 
     assert out == "Hello"
     assert chunks == ["He", "llo"]
+
+
+def test_generate_stream_skips_non_dict_choice_entries() -> None:
+    """SSE lines with null or non-object choices must not crash streaming (#6)."""
+    lines = [
+        b'data: {"choices":[null]}\n\n',
+        b'data: {"choices":["not-a-dict"]}\n\n',
+        b'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
