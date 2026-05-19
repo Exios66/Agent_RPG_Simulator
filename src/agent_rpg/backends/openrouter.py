@@ -117,7 +117,17 @@ class OpenRouterBackend:
         if stream:
             return self._read_sse_stream(resp, chunk_callback)
         try:
-            payload = json.loads(resp.read().decode("utf-8"))
+            raw_text = resp.read().decode("utf-8", errors="replace")
+            try:
+                payload = json.loads(raw_text)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"OpenRouter returned invalid JSON ({e}). Body prefix: {raw_text[:500]!r}"
+                ) from e
+            if not isinstance(payload, dict):
+                raise RuntimeError(
+                    f"OpenRouter returned JSON that is not an object: {type(payload).__name__!r} {payload!r}"
+                )
         finally:
             resp.close()
         choices = payload.get("choices") or []
