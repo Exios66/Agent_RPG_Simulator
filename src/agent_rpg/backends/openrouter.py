@@ -11,7 +11,9 @@ DEFAULT_OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
 def _content_from_choice(choice: dict[str, Any]) -> str:
-    msg = choice.get("message") or {}
+    # Some proxies or malformed bodies use a scalar ``message``; only objects have ``.get``.
+    msg_raw = choice.get("message")
+    msg = msg_raw if isinstance(msg_raw, dict) else {}
     content = msg.get("content")
     if isinstance(content, str):
         return content
@@ -161,7 +163,8 @@ class OpenRouterBackend:
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
-                    delta = choice.get("delta") or {}
+                    delta_raw = choice.get("delta")
+                    delta = delta_raw if isinstance(delta_raw, dict) else {}
                     piece = delta.get("content")
                     if isinstance(piece, str) and piece:
                         parts.append(piece)
