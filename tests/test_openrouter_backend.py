@@ -67,6 +67,59 @@ def test_generate_non_stream_json_array_raises_clear_runtime_error() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="m")
 
 
+def test_generate_non_stream_multimodal_content_blocks() -> None:
+    """List-shaped ``message.content`` (OpenRouter / OpenAI multimodal) must concatenate text blocks."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Part A"},
+                        {"text": "Part B"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "Part APart B"
+
+
+def test_generate_stream_skips_non_dict_choice_entries() -> None:
+    """Malformed SSE chunks with null choices must not crash streaming."""
+    lines = [
+        b'data: {"choices":[null, {"delta":{"content":"ok"}}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
 def test_generate_stream_accumulates_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',
