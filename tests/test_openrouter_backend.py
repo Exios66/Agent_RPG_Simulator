@@ -104,3 +104,32 @@ def test_generate_stream_accumulates_delta() -> None:
 
     assert out == "Hello"
     assert chunks == ["He", "llo"]
+
+
+def test_generate_stream_skips_non_dict_choice() -> None:
+    """Malformed SSE chunks with null choices must not crash the stream reader."""
+    lines = [
+        b'data: {"choices":[null, {"delta":{"content":"ok"}}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
