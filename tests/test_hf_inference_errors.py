@@ -60,6 +60,19 @@ def test_generate_non_stream_empty_choices_raises() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
 
+def test_generate_non_stream_null_choice_raises() -> None:
+    """``choices: [null]`` must not crash with AttributeError (mirrors OpenRouter non-stream handling)."""
+    completion = MagicMock()
+    completion.choices = [None]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        with pytest.raises(RuntimeError, match="null choice"):
+            b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+
 def test_other_status_reraises_unchained_message() -> None:
     err = _err(500, "server error")
     with pytest.raises(HfHubHTTPError) as info:
