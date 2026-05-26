@@ -47,6 +47,19 @@ def test_400_unrelated_reraises_original() -> None:
     assert "[agent-rpg]" not in str(info.value)
 
 
+def test_generate_non_stream_null_choice_raises() -> None:
+    """``choices: [None]`` must not raise AttributeError on ``choice.message``."""
+    completion = MagicMock()
+    completion.choices = [None]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        with pytest.raises(RuntimeError, match="invalid choice"):
+            b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+
 def test_generate_non_stream_empty_choices_raises() -> None:
     """Router must not IndexError when ``choices`` is empty."""
     completion = MagicMock()
