@@ -116,6 +116,10 @@ class HuggingFaceInferenceBackend:
                 "Hugging Face chat completion returned no choices; check model_id, provider status, and quotas."
             )
         choice = choices[0]
+        if choice is None:
+            raise RuntimeError(
+                "Hugging Face chat completion returned a null choice; check model_id, provider status, and quotas."
+            )
         msg = choice.message
         content = getattr(msg, "content", None)
         if isinstance(content, str):
