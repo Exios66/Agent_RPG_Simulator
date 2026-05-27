@@ -24,3 +24,19 @@ def test_parse_invalid_fallback():
 def test_router_parse():
     assert parse_router_response('{"next_agent_id":"a"}', {"a", "b"}) == "a"
     assert parse_router_response('{"next_agent_id":"z"}', {"a", "b"}) is None
+
+
+def test_parse_message_fallback_field():
+    p = parse_agent_json_response('{"thought":"t","message":"via message key"}')
+    assert p.say == "via message key"
+    assert p.parse_error is None
+
+
+def test_parse_non_object_json():
+    p = parse_agent_json_response("[1, 2, 3]")
+    assert p.parse_error == "not_object"
+    assert p.say == "[1, 2, 3]"
+
+
+def test_router_parse_next_alias():
+    assert parse_router_response('{"next":"b"}', {"a", "b"}) == "b"

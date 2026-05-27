@@ -73,6 +73,25 @@ def test_generate_non_stream_empty_choices_raises() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
 
+def test_generate_non_stream_list_content_blocks() -> None:
+    """HF may return message.content as a list of dict blocks."""
+    choice = MagicMock()
+    choice.message.content = [
+        {"text": "Hello "},
+        {"type": "text", "text": "world"},
+    ]
+    completion = MagicMock()
+    completion.choices = [choice]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "Hello world"
+
+
 def test_other_status_reraises_unchained_message() -> None:
     err = _err(500, "server error")
     with pytest.raises(HfHubHTTPError) as info:
