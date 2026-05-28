@@ -79,3 +79,38 @@ def test_other_status_reraises_unchained_message() -> None:
         _reraise_inference_http_error(err)
     assert info.value is err
     assert "[agent-rpg]" not in str(info.value)
+
+
+def test_generate_stream_accumulates_delta_content() -> None:
+    chunk1 = MagicMock()
+    chunk1.choices = [MagicMock(delta=MagicMock(content="Hi"), message=None)]
+    chunk2 = MagicMock()
+    chunk2.choices = [MagicMock(delta=MagicMock(content="!"), message=None)]
+
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = iter([chunk1, chunk2])
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "Hi!"
+
+
+def test_generate_non_stream_list_content_blocks() -> None:
+    choice = MagicMock()
+    choice.message.content = [{"text": "block-a"}, {"text": "block-b"}]
+    completion = MagicMock()
+    completion.choices = [choice]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "block-ablock-b"

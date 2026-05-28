@@ -24,3 +24,33 @@ def test_parse_invalid_fallback():
 def test_router_parse():
     assert parse_router_response('{"next_agent_id":"a"}', {"a", "b"}) == "a"
     assert parse_router_response('{"next_agent_id":"z"}', {"a", "b"}) is None
+
+
+def test_parse_fenced_without_json_label():
+    raw = '```\n{"thought":"","say":"from-generic-fence","directed_at":null}\n```'
+    p = parse_agent_json_response(raw)
+    assert p.say == "from-generic-fence"
+    assert p.parse_error is None
+
+
+def test_parse_message_field_fallback():
+    p = parse_agent_json_response('{"thought":"","message":"via-message"}')
+    assert p.say == "via-message"
+
+
+def test_parse_empty_say_sets_parse_error():
+    p = parse_agent_json_response('{"thought":"only-thought","say":""}')
+    assert p.parse_error == "empty_say"
+
+
+def test_parse_non_object_json():
+    p = parse_agent_json_response("[1, 2, 3]")
+    assert p.parse_error == "not_object"
+
+
+def test_router_parse_invalid_json():
+    assert parse_router_response("not json", {"a"}) is None
+
+
+def test_router_parse_next_alias():
+    assert parse_router_response('{"next":"b"}', {"a", "b"}) == "b"

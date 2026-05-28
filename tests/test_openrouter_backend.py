@@ -147,3 +147,27 @@ def test_generate_stream_skips_non_dict_choice_entries() -> None:
         )
 
     assert out == "ok"
+
+
+def test_generate_non_stream_multipart_message_content() -> None:
+    """OpenRouter may return message.content as a list of text blocks."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "part-a"},
+                        {"text": "part-b"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "part-apart-b"
