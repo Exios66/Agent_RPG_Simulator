@@ -129,3 +129,91 @@ def test_memory_turns_zero_omits_prior_transcript(tmp_path: Path):
     assert len(backend.calls) >= 3
     user3 = backend.calls[2][0][1].get("content", "")
     assert "EARLY_UNIQUE_LINE" not in user3
+
+
+def test_engine_parse_error_emits_error_event(tmp_path: Path):
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+
+    backend = FakeLLMBackend(responses=["not valid json"] * 2)
+    eng = SimulationEngine(s)
+    eng.run(backend, output_dir=tmp_path, run_id="pe1")
+    events = iter_events_jsonl(tmp_path / "pe1" / "events.jsonl")
+    errors = [e for e in events if e.event_type == "error"]
+    assert len(errors) == 2
+    assert all(e.payload["stage"] == "parse" for e in errors)
+    assert all(e.payload["error"] == "invalid_json" for e in errors)
+    messages = [e for e in events if e.event_type == "message"]
+    assert len(messages) == 2
+    assert all(m.payload["parse_error"] == "invalid_json" for m in messages)
+
+
+def test_engine_on_event_callback_receives_events(tmp_path: Path):
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+
+    backend = FakeLLMBackend(
+        responses=['{"thought":"","say":"ok","directed_at":null}'] * 2,
+    )
+    received: list[str] = []
+
+    def on_event(ev):
+        received.append(ev.event_type)
+
+    SimulationEngine(s).run(
+        backend,
+        output_dir=tmp_path,
+        run_id="cb1",
+        on_event=on_event,
+    )
+    assert "system" in received
+    assert "message" in received
+
+
+def test_engine_random_turn_order_is_seeded(tmp_path: Path):
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.turn_order = "random"
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+
+    def fac(_i: int, _msgs: list[dict[str, str]]) -> str:
+        return '{"thought":"","say":"ok","directed_at":null}'
+
+    def first_agent_id(seed: int) -> str:
+        backend = FakeLLMBackend(factory=fac)
+        SimulationEngine(s).run(
+            backend,
+            output_dir=tmp_path,
+            run_id=f"rnd{seed}",
+            seed=seed,
+        )
+        first_line = backend.calls[0][0][0]["content"].splitlines()[0]
+        return "bob" if first_line.startswith("You are Bob") else "alice"
+
+    assert first_agent_id(42) == first_agent_id(42)
+    orders = {first_agent_id(seed) for seed in range(30)}
+    assert len(orders) == 2
+
+
+def test_memory_turns_truncates_prior_transcript(tmp_path: Path):
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.memory_turns = 1
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 4
+    s.world.max_rounds = 4
+
+    def fac(i: int, _msgs: list[dict[str, str]]) -> str:
+        return f'{{"thought":"","say":"LINE_{i}","directed_at":null}}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="m1")
+    # Round 3, first speaker (call index 6): memory_turns=1 keeps only the last 4 lines.
+    user_content = backend.calls[6][0][1].get("content", "")
+    assert "LINE_0" not in user_content
+    assert "LINE_1" not in user_content
+    assert "LINE_6" in user_content or "LINE_5" in user_content
