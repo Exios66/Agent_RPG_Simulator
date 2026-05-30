@@ -78,6 +78,50 @@ def test_generate_non_stream_json_array_raises_clear_runtime_error() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="m")
 
 
+def test_generate_non_stream_rejects_non_object_message() -> None:
+    """``message`` must be an object per the chat-completions schema; a string must not crash with AttributeError."""
+    payload = {"choices": [{"message": "plain text instead of an object"}]}
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="invalid message"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_stream_non_dict_delta_does_not_crash() -> None:
+    """Malformed SSE where ``delta`` is not an object must not call ``.get`` on a string."""
+    lines = [
+        b'data: {"choices":[{"delta":"broken"}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == ""
+
+
 def test_generate_stream_accumulates_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',

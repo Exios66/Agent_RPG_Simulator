@@ -11,7 +11,17 @@ DEFAULT_OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
 def _content_from_choice(choice: dict[str, Any]) -> str:
-    msg = choice.get("message") or {}
+    # ``choice.get("message") or {}`` treats only falsy values as empty; a string body
+    # (malformed proxy / buggy server) is truthy and would make ``msg.get`` crash.
+    raw_msg = choice.get("message")
+    if raw_msg is None:
+        msg: dict[str, Any] = {}
+    elif isinstance(raw_msg, dict):
+        msg = raw_msg
+    else:
+        raise RuntimeError(
+            f"OpenRouter returned invalid message (expected object or null, got {type(raw_msg).__name__!r}): {choice!r}"
+        )
     content = msg.get("content")
     if isinstance(content, str):
         return content
@@ -161,7 +171,8 @@ class OpenRouterBackend:
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
-                    delta = choice.get("delta") or {}
+                    raw_delta = choice.get("delta")
+                    delta: dict[str, Any] = raw_delta if isinstance(raw_delta, dict) else {}
                     piece = delta.get("content")
                     if isinstance(piece, str) and piece:
                         parts.append(piece)
