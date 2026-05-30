@@ -78,6 +78,74 @@ def test_generate_non_stream_json_array_raises_clear_runtime_error() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="m")
 
 
+def test_generate_non_stream_empty_choices_raises() -> None:
+    """Empty ``choices`` must raise RuntimeError, not IndexError."""
+    payload = {"choices": []}
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="no choices"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_non_stream_multipart_content_list() -> None:
+    """Providers may return ``message.content`` as a list of text blocks."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "He"},
+                        {"text": "llo"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "Hello"
+
+
+def test_generate_stream_skips_non_dict_choice_entries() -> None:
+    """SSE chunks with scalar or null choices must not crash the stream reader."""
+    lines = [
+        b'data: {"choices":[null, "bad", {"delta":{"content":"ok"}}]}\n\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
 def test_generate_stream_accumulates_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',
