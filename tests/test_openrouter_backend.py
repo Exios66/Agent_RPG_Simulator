@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent_rpg.backends.openrouter import OpenRouterBackend
+from agent_rpg.backends.openrouter import OpenRouterBackend, _content_from_choice
+from urllib.error import HTTPError, URLError
 
 
 def test_generate_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -147,3 +148,69 @@ def test_generate_stream_skips_non_dict_choice_entries() -> None:
         )
 
     assert out == "ok"
+
+
+def test_content_from_choice_list_blocks_with_text_key() -> None:
+    choice = {
+        "message": {
+            "content": [
+                {"text": "Hello "},
+                {"type": "text", "text": "world"},
+            ]
+        }
+    }
+    assert _content_from_choice(choice) == "Hello world"
+
+
+def test_content_from_choice_list_unknown_block_str() -> None:
+    choice = {"message": {"content": [42, {"text": "x"}]}}
+    assert _content_from_choice(choice) == "42x"
+
+
+def test_generate_non_stream_multipart_message_content() -> None:
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"text": "part1"},
+                        {"type": "text", "text": "part2"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "part1part2"
+
+
+def test_generate_http_error_includes_status_and_body_prefix() -> None:
+    err_body = b'{"error":"quota"}'
+    http_err = HTTPError(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        code=429,
+        msg="Too Many Requests",
+        hdrs=None,
+        fp=MagicMock(read=MagicMock(return_value=err_body)),
+    )
+
+    with patch("agent_rpg.backends.openrouter.urlopen", side_effect=http_err):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="HTTP 429"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_url_error_wraps_reason() -> None:
+    with patch(
+        "agent_rpg.backends.openrouter.urlopen",
+        side_effect=URLError("connection reset"),
+    ):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="request failed"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")

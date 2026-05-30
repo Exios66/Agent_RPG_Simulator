@@ -79,3 +79,21 @@ def test_other_status_reraises_unchained_message() -> None:
         _reraise_inference_http_error(err)
     assert info.value is err
     assert "[agent-rpg]" not in str(info.value)
+
+
+def test_generate_non_stream_list_content_blocks_joined() -> None:
+    """Multipart message content must not crash when content is a list of blocks."""
+    msg = MagicMock()
+    msg.content = [{"text": "Hi "}, {"text": "there"}]
+    choice = MagicMock()
+    choice.message = msg
+    completion = MagicMock()
+    completion.choices = [choice]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "Hi there"
