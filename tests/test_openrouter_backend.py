@@ -40,6 +40,30 @@ def test_generate_non_stream_rejects_null_choice() -> None:
             b.generate([{"role": "user", "content": "ping"}], model_id="m")
 
 
+def test_generate_non_stream_parses_list_content_blocks() -> None:
+    """Multimodal-style content arrays must concatenate text blocks without crashing."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "He"},
+                        {"text": "llo"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "Hello"
+
+
 def test_generate_non_stream_parses_message_content() -> None:
     payload = {"choices": [{"message": {"content": '{"say":"hi"}'}}]}
     mock_resp = MagicMock()
