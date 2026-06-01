@@ -158,6 +158,8 @@ class OpenRouterBackend:
                     obj = json.loads(data)
                 except json.JSONDecodeError:
                     continue
+                if not isinstance(obj, dict):
+                    continue
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
