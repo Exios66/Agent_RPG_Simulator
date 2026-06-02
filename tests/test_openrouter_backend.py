@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from urllib.error import HTTPError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -147,3 +148,42 @@ def test_generate_stream_skips_non_dict_choice_entries() -> None:
         )
 
     assert out == "ok"
+
+
+def test_generate_non_stream_list_content_blocks() -> None:
+    """Multimodal-style ``content`` arrays must flatten to text (regression for #6)."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Hello "},
+                        {"text": "world"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "Hello world"
+
+
+def test_generate_http_error_includes_response_body() -> None:
+    err = HTTPError(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        code=401,
+        msg="Unauthorized",
+        hdrs=None,
+        fp=MagicMock(read=MagicMock(return_value=b'{"error":"bad key"}')),
+    )
+
+    with patch("agent_rpg.backends.openrouter.urlopen", side_effect=err):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="OpenRouter HTTP 401"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
