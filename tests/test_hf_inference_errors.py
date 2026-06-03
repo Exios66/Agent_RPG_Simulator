@@ -36,7 +36,7 @@ def test_400_model_not_supported_wraps_with_catalog_hint() -> None:
     with pytest.raises(HfHubHTTPError) as info:
         _reraise_inference_http_error(_err(400, msg))
     assert "[agent-rpg]" in str(info.value)
-    assert "SMALL_INSTRUCT_MODELS" in str(info.value) or "inference/models" in str(info.value)
+    assert "DEFAULT_HF_INFERENCE_MODEL_ID" in str(info.value) or "inference/models" in str(info.value)
 
 
 def test_400_unrelated_reraises_original() -> None:

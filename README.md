@@ -102,7 +102,7 @@ report.write_markdown(out / "report.md", scenario=scenario)
 
 `scenario_json_schema()` returns the JSON Schema for `ScenarioConfig` (for editors and tooling).
 
-**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated open-instruct list live in `agent_rpg.model_catalog` (default Hub id: **`Qwen/Qwen2.5-1.5B-Instruct`**). **Inference Providers** may reject some Hub ids (`model_not_supported`); switch model or use local `TransformersLocalBackend`.
+**Multi-model runs:** after building or loading a scenario, call `assign_models_to_agents(scenario, model_pool, strategy="rotate"|"shuffle"|"random")` so each agent’s YAML `model_id` is overwritten from the pool. For `turn_order: reactive`, set `orchestration.reactive_router_model_id` or use `set_router_model_if_reactive(scenario, pool[0])`. Defaults and a curated open-instruct list live in `agent_rpg.model_catalog` (local default **`Qwen/Qwen2.5-1.5B-Instruct`**; HF Inference router default **`Qwen/Qwen2.5-7B-Instruct`**). Smaller Qwen ids often return `model_not_supported` on the router — use `HF_ROUTER_INSTRUCT_MODEL_IDS` or local `TransformersLocalBackend`.
 
 Procedural scenarios: `build_random_scenario(seed=...)` returns a new valid `ScenarioConfig` each time (see `notebooks/06_full_randomized_simulation.ipynb` and the full tour in `notebooks/07_simulation_exemplar.ipynb`).
 

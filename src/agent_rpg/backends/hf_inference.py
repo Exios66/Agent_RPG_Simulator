@@ -38,8 +38,9 @@ def _reraise_inference_http_error(exc: HfHubHTTPError) -> None:
         if "model_not_supported" in detail or "not supported by any provider" in detail:
             hint = (
                 "\n\n[agent-rpg] HTTP 400: this model id is not enabled on the Hugging Face Inference router for your "
-                "account. Try another entry from `agent_rpg.model_catalog.SMALL_INSTRUCT_MODELS`, browse "
-                "https://huggingface.co/inference/models , or use **Local Transformers** in notebook 08."
+                "account. Use `agent_rpg.model_catalog.DEFAULT_HF_INFERENCE_MODEL_ID` (currently Qwen 7B) or another id "
+                "in `HF_ROUTER_INSTRUCT_MODEL_IDS`, browse https://huggingface.co/inference/models , or switch to "
+                "**Local Transformers** in notebook 08."
             )
             raise HfHubHTTPError(
                 str(exc) + hint,
