@@ -147,3 +147,80 @@ def test_generate_stream_skips_non_dict_choice_entries() -> None:
         )
 
     assert out == "ok"
+
+
+def test_generate_non_stream_rejects_non_dict_message() -> None:
+    """``message`` as a bare string must not crash with AttributeError."""
+    payload = {"choices": [{"message": "not-an-object"}]}
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == ""
+
+
+def test_generate_stream_skips_non_object_sse_payload() -> None:
+    """SSE ``data:`` JSON that is not an object must not crash (regression)."""
+    lines = [
+        b"data: []\n",
+        b'data: {"choices":[{"delta":{"content":"ok"}}]}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
+def test_generate_stream_skips_non_dict_delta() -> None:
+    lines = [
+        b'data: {"choices":[{"delta":"bad"},{"delta":{"content":"x"}}]}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "x"

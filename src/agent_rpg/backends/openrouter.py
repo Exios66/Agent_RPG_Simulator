@@ -11,7 +11,9 @@ DEFAULT_OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
 def _content_from_choice(choice: dict[str, Any]) -> str:
-    msg = choice.get("message") or {}
+    msg = choice.get("message")
+    if not isinstance(msg, dict):
+        msg = {}
     content = msg.get("content")
     if isinstance(content, str):
         return content
@@ -158,10 +160,14 @@ class OpenRouterBackend:
                     obj = json.loads(data)
                 except json.JSONDecodeError:
                     continue
+                if not isinstance(obj, dict):
+                    continue
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
-                    delta = choice.get("delta") or {}
+                    delta = choice.get("delta")
+                    if not isinstance(delta, dict):
+                        delta = {}
                     piece = delta.get("content")
                     if isinstance(piece, str) and piece:
                         parts.append(piece)
