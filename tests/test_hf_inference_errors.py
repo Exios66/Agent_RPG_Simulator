@@ -146,3 +146,75 @@ def test_generate_non_stream_list_content_blocks() -> None:
         out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
     assert out == "part1part2"
+
+
+def test_generate_non_stream_list_non_dict_blocks() -> None:
+    completion = MagicMock()
+    completion.choices = [MagicMock(message=MagicMock(content=["a", "b"]))]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "ab"
+
+
+def test_generate_stream_invokes_chunk_callback() -> None:
+    seen: list[str] = []
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [_chunk("a"), _chunk("b")]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+            chunk_callback=seen.append,
+        )
+
+    assert out == "ab"
+    assert seen == ["a", "b"]
+
+
+def test_generate_stream_falls_back_to_message_content() -> None:
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [_chunk(message_content="via-message")]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "via-message"
+
+
+def test_generate_stream_http_error_wraps_hint() -> None:
+    fake_client = MagicMock()
+    fake_client.chat_completion.side_effect = _err(402, "Payment Required")
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        with pytest.raises(HfHubHTTPError) as info:
+            b.generate(
+                [{"role": "user", "content": "x"}],
+                model_id="dummy/model",
+                stream=True,
+            )
+    assert "[agent-rpg]" in str(info.value)
+
+
+def test_inference_client_receives_base_url() -> None:
+    with patch("agent_rpg.backends.hf_inference.InferenceClient") as mock_cls:
+        mock_cls.return_value.chat_completion.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="ok"))]
+        )
+        b = HuggingFaceInferenceBackend(token="hf_test", base_url="https://custom.example/v1")
+        b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    mock_cls.assert_called_once_with(token="hf_test", base_url="https://custom.example/v1")
