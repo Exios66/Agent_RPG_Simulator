@@ -79,3 +79,70 @@ def test_other_status_reraises_unchained_message() -> None:
         _reraise_inference_http_error(err)
     assert info.value is err
     assert "[agent-rpg]" not in str(info.value)
+
+
+def _chunk(delta_content: str | None = None, *, message_content: str | None = None):
+    choice = MagicMock()
+    choice.delta = MagicMock(content=delta_content) if delta_content is not None else None
+    if message_content is not None:
+        choice.message = MagicMock(content=message_content)
+    else:
+        choice.message = None
+    chunk = MagicMock()
+    chunk.choices = [choice]
+    return chunk
+
+
+def test_generate_stream_accumulates_delta_content() -> None:
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [
+        _chunk("He"),
+        _chunk("llo"),
+    ]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "Hello"
+    assert fake_client.chat_completion.call_args.kwargs.get("stream") is True
+
+
+def test_generate_stream_skips_null_choice() -> None:
+    """Streaming chunks with missing choices must not raise (regression for #6)."""
+    null_chunk = MagicMock()
+    null_chunk.choices = None
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [
+        null_chunk,
+        _chunk("ok"),
+    ]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
+def test_generate_non_stream_list_content_blocks() -> None:
+    completion = MagicMock()
+    completion.choices = [
+        MagicMock(message=MagicMock(content=[{"text": "part1"}, {"text": "part2"}]))
+    ]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "part1part2"

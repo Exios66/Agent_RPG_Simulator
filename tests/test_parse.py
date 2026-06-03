@@ -24,3 +24,28 @@ def test_parse_invalid_fallback():
 def test_router_parse():
     assert parse_router_response('{"next_agent_id":"a"}', {"a", "b"}) == "a"
     assert parse_router_response('{"next_agent_id":"z"}', {"a", "b"}) is None
+
+
+def test_parse_fence_without_json_label():
+    raw = '```\n{"thought":"","say":"from fence","directed_at":null}\n```'
+    p = parse_agent_json_response(raw)
+    assert p.say == "from fence"
+    assert p.parse_error is None
+
+
+def test_parse_not_object():
+    p = parse_agent_json_response("[1, 2]")
+    assert p.parse_error == "not_object"
+
+
+def test_parse_empty_say():
+    p = parse_agent_json_response('{"thought":"x","say":"","directed_at":null}')
+    assert p.parse_error == "empty_say"
+
+
+def test_router_invalid_json_returns_none():
+    assert parse_router_response("not json", {"a"}) is None
+
+
+def test_router_non_object_returns_none():
+    assert parse_router_response("[1]", {"a"}) is None
