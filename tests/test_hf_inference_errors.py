@@ -73,6 +73,47 @@ def test_generate_non_stream_empty_choices_raises() -> None:
             b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
 
+def test_generate_non_stream_parses_list_content_blocks() -> None:
+    """HF router may return message.content as a list of text blocks."""
+    choice = MagicMock()
+    choice.message.content = [{"text": "part1"}, {"text": "part2"}]
+    completion = MagicMock()
+    completion.choices = [choice]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == "part1part2"
+
+
+def test_generate_stream_skips_null_choice_and_accumulates_delta() -> None:
+    chunk_with_null = MagicMock()
+    chunk_with_null.choices = [None]
+    chunk_ok = MagicMock()
+    delta = MagicMock()
+    delta.content = "ok"
+    choice = MagicMock()
+    choice.delta = delta
+    choice.message = None
+    chunk_ok.choices = [choice]
+
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = iter([chunk_with_null, chunk_ok])
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
 def test_other_status_reraises_unchained_message() -> None:
     err = _err(500, "server error")
     with pytest.raises(HfHubHTTPError) as info:
