@@ -112,6 +112,24 @@ def test_generate_stream_accumulates_delta_content() -> None:
     assert fake_client.chat_completion.call_args.kwargs.get("stream") is True
 
 
+def test_generate_stream_falls_back_to_message_content() -> None:
+    """Some providers emit final text on choice.message instead of delta."""
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [
+        _chunk(message_content="full"),
+    ]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "full"
+
+
 def test_generate_stream_skips_null_choice() -> None:
     """Streaming chunks with missing choices must not raise (regression for #6)."""
     null_chunk = MagicMock()
