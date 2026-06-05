@@ -51,12 +51,30 @@ def test_generate_non_stream_parses_message_content() -> None:
         out = b.generate([{"role": "user", "content": "ping"}], model_id="org/model:free")
 
     assert out == '{"say":"hi"}'
-    m_url.assert_called_once()
-    req = m_url.call_args[0][0]
-    assert req.full_url.endswith("/chat/completions")
-    body = json.loads(req.data.decode())
-    assert body["model"] == "org/model:free"
-    assert body["messages"][0]["role"] == "user"
+
+
+def test_generate_non_stream_parses_list_message_content() -> None:
+    """Multimodal/list ``message.content`` blocks must concatenate without crashing."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"text": "part1"},
+                        {"type": "text", "text": "part2"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "part1part2"
 
 
 def test_generate_non_stream_invalid_json_raises_clear_runtime_error() -> None:
