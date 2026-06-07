@@ -39,10 +39,15 @@ def assign_models_to_agents(
 
 
 def set_router_model_if_reactive(scenario: ScenarioConfig, model_id: str | None = None) -> None:
-    """If turn order is reactive and router model unset, use ``model_id`` or first agent's model."""
+    """Set the reactive router model when turn order is reactive.
+
+    When ``model_id`` is omitted, only fills in ``reactive_router_model_id`` if it is unset.
+    When ``model_id`` is provided explicitly, always updates the router model (e.g. after
+    ``assign_models_to_agents`` overwrites agent ``model_id`` values).
+    """
     if scenario.orchestration.turn_order != "reactive":
         return
-    if scenario.orchestration.reactive_router_model_id is not None:
+    if model_id is None and scenario.orchestration.reactive_router_model_id is not None:
         return
     scenario.orchestration.reactive_router_model_id = model_id or (
         scenario.agents[0].model_id if scenario.agents else DEFAULT_INSTRUCT_MODEL_ID
