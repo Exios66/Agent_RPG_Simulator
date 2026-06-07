@@ -162,6 +162,13 @@ class OpenRouterBackend:
                     continue
                 if not isinstance(obj, dict):
                     continue
+                if obj.get("error") is not None:
+                    err = obj["error"]
+                    if isinstance(err, dict):
+                        msg = err.get("message") or err.get("code") or json.dumps(err)
+                    else:
+                        msg = str(err)
+                    raise RuntimeError(f"OpenRouter stream error: {msg}") from None
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue

@@ -38,3 +38,14 @@ def test_set_router_model_if_reactive_sets_once():
     assign_models_to_agents(scenario, ["r1", "r2"], strategy="rotate")
     set_router_model_if_reactive(scenario, "router-model")
     assert scenario.orchestration.reactive_router_model_id == "router-model"
+
+
+def test_set_router_model_if_reactive_updates_after_pool_assignment():
+    """Explicit model_id must override stale router id from build_random_scenario."""
+    scenario = build_random_scenario(
+        seed=5, num_agents=2, max_rounds=1, turn_order="reactive", model_id="stale-router"
+    )
+    assert scenario.orchestration.reactive_router_model_id == "stale-router"
+    assign_models_to_agents(scenario, ["router-safe-a", "router-safe-b"], strategy="rotate")
+    set_router_model_if_reactive(scenario, scenario.agents[0].model_id)
+    assert scenario.orchestration.reactive_router_model_id == "router-safe-a"
