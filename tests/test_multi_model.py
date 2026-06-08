@@ -38,3 +38,15 @@ def test_set_router_model_if_reactive_sets_once():
     assign_models_to_agents(scenario, ["r1", "r2"], strategy="rotate")
     set_router_model_if_reactive(scenario, "router-model")
     assert scenario.orchestration.reactive_router_model_id == "router-model"
+
+
+def test_set_router_model_if_reactive_overwrites_build_time_default():
+    """After pool assignment, router must track agent 0 — not the build-time placeholder."""
+    scenario = build_random_scenario(
+        seed=1, num_agents=3, max_rounds=1, turn_order="reactive", model_id="build-default"
+    )
+    assert scenario.orchestration.reactive_router_model_id == "build-default"
+    assign_models_to_agents(scenario, ["model-A", "model-B"], strategy="shuffle", rng=random.Random(99))
+    set_router_model_if_reactive(scenario, scenario.agents[0].model_id)
+    assert scenario.orchestration.reactive_router_model_id == scenario.agents[0].model_id
+    assert scenario.orchestration.reactive_router_model_id != "build-default"
