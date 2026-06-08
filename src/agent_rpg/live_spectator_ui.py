@@ -30,8 +30,13 @@ DISPLAY_ID = "live_spectator_controls"
 MAX_AGENT_SLOTS = 8
 
 # Wider controls help VS Code / Cursor widget hosts avoid zero-width children.
-_CTRL_LAYOUT = W.Layout(width="auto", min_width="28em")
-_WIDE = W.Layout(width="auto", min_width="36em", max_width="100%")
+# Each widget needs its own Layout instance so per-row display toggles do not leak.
+def _ctrl_layout() -> W.Layout:
+    return W.Layout(width="auto", min_width="28em")
+
+
+def _wide_layout() -> W.Layout:
+    return W.Layout(width="auto", min_width="36em", max_width="100%")
 
 
 @dataclass
@@ -95,26 +100,26 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
         options=["HF Inference API", "Local Transformers"],
         value="HF Inference API",
         description="Execution",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
     assign_mode = W.ToggleButtons(
         options=["Pool + strategy", "Pick per agent"],
         value="Pool + strategy",
         description="Assignment",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
     pool_sel = W.SelectMultiple(
         options=labels,
         value=default_pool,
         rows=min(8, max(4, len(labels))),
         description="Model pool",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
     strat = W.Dropdown(
         options=[("rotate", "rotate"), ("shuffle", "shuffle"), ("random", "random")],
         value="rotate",
         description="Strategy",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
 
     agent_dds = [
@@ -124,17 +129,17 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
             if labels
             else None,
             description=f"Agent {i + 1}",
-            layout=_CTRL_LAYOUT,
+            layout=_ctrl_layout(),
         )
         for i in range(MAX_AGENT_SLOTS)
     ]
 
-    n_agents = W.IntSlider(value=3, min=2, max=8, description="Agents", layout=_CTRL_LAYOUT)
-    rounds = W.IntSlider(value=2, min=1, max=6, description="Rounds", layout=_CTRL_LAYOUT)
-    seed = W.IntText(value=42, description="Seed", layout=_CTRL_LAYOUT)
+    n_agents = W.IntSlider(value=3, min=2, max=8, description="Agents", layout=_ctrl_layout())
+    rounds = W.IntSlider(value=2, min=1, max=6, description="Rounds", layout=_ctrl_layout())
+    seed = W.IntText(value=42, description="Seed", layout=_ctrl_layout())
     stream_tokens = W.Checkbox(value=False, description="Stream tokens (HF only)")
     thoughts = W.Checkbox(value=False, description="Thought phase")
-    device_map = W.Text(value="auto", description="Device (local)", layout=_CTRL_LAYOUT)
+    device_map = W.Text(value="auto", description="Device (local)", layout=_ctrl_layout())
 
     preset_titles = list_world_preset_titles()
     world_dd_opts = [("(Random premise)", "")] + [(t, t) for t in preset_titles]
@@ -142,28 +147,28 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
         options=world_dd_opts,
         value="",
         description="World premise",
-        layout=_WIDE,
+        layout=_wide_layout(),
     )
     env_setting_ta = W.Textarea(
         value="",
         placeholder="Optional: replace sensory scene text (leave blank for preset)",
         rows=2,
         description="Setting",
-        layout=_WIDE,
+        layout=_wide_layout(),
     )
     env_backstory_ta = W.Textarea(
         value="",
         placeholder="Optional: replace central conflict (leave blank for preset)",
         rows=2,
         description="Backstory",
-        layout=_WIDE,
+        layout=_wide_layout(),
     )
     env_notes_ta = W.Textarea(
         value="",
         placeholder="Optional: replace world rules / notes (leave blank for preset)",
         rows=2,
         description="World notes",
-        layout=_WIDE,
+        layout=_wide_layout(),
     )
 
     char0 = ("(random)", "")
@@ -171,19 +176,19 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
         options=[char0] + [(_short(g), g) for g in GOAL_OPTIONS],
         value="",
         description="Shared goal",
-        layout=_WIDE,
+        layout=_wide_layout(),
     )
     char_arch_dd = W.Dropdown(
         options=[char0] + [(a, a) for a in ARCHETYPE_OPTIONS],
         value="",
         description="Archetype",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
     char_occ_dd = W.Dropdown(
         options=[char0] + [(o, o) for o in OCCUPATION_OPTIONS],
         value="",
         description="Occupation",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
 
     turn_order_dd = W.Dropdown(
@@ -194,12 +199,12 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
         ],
         value="round_robin",
         description="Turn order",
-        layout=_CTRL_LAYOUT,
+        layout=_ctrl_layout(),
     )
     memory_turns_sld = W.IntSlider(
-        value=16, min=4, max=32, step=2, description="Memory turns", layout=_CTRL_LAYOUT
+        value=16, min=4, max=32, step=2, description="Memory turns", layout=_ctrl_layout()
     )
-    stop_phrase_txt = W.Text(value="", description="Stop phrase", layout=_CTRL_LAYOUT)
+    stop_phrase_txt = W.Text(value="", description="Stop phrase", layout=_ctrl_layout())
 
     pool_box = W.VBox(
         [
