@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from urllib.error import HTTPError
+from io import BytesIO
+from urllib.error import HTTPError, URLError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -225,3 +226,86 @@ def test_generate_stream_skips_non_dict_delta() -> None:
         )
 
     assert out == "x"
+
+
+def test_generate_non_stream_list_content_blocks() -> None:
+    """OpenRouter often returns multimodal content as a list of text blocks."""
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Hello "},
+                        {"text": "world"},
+                    ]
+                }
+            }
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(payload).encode()
+
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=mock_resp):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+    assert out == "Hello world"
+
+
+def test_generate_http_error_raises_runtime_error() -> None:
+    err_body = b'{"error":"invalid api key"}'
+    http_err = HTTPError(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        code=401,
+        msg="Unauthorized",
+        hdrs=None,
+        fp=BytesIO(err_body),
+    )
+
+    with patch("agent_rpg.backends.openrouter.urlopen", side_effect=http_err):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="OpenRouter HTTP 401"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_url_error_raises_runtime_error() -> None:
+    with patch(
+        "agent_rpg.backends.openrouter.urlopen",
+        side_effect=URLError("connection refused"),
+    ):
+        b = OpenRouterBackend(api_key="sk-or-test")
+        with pytest.raises(RuntimeError, match="OpenRouter request failed"):
+            b.generate([{"role": "user", "content": "x"}], model_id="m")
+
+
+def test_generate_stream_skips_comment_and_non_data_lines() -> None:
+    lines = [
+        b": keep-alive comment\n",
+        b"event: ping\n",
+        b'data: {"choices":[{"delta":{"content":"ok"}}]}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="m",
+            stream=True,
+        )
+
+    assert out == "ok"

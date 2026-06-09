@@ -129,3 +129,48 @@ def test_memory_turns_zero_omits_prior_transcript(tmp_path: Path):
     assert len(backend.calls) >= 3
     user3 = backend.calls[2][0][1].get("content", "")
     assert "EARLY_UNIQUE_LINE" not in user3
+
+
+def test_engine_emits_parse_error_event(tmp_path: Path):
+    """Malformed agent JSON must emit an error event with stage=parse."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+
+    def fac(_i: int, _msgs: list[dict[str, str]]) -> str:
+        return "not valid json at all"
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="pe1")
+    events = iter_events_jsonl(tmp_path / "pe1" / "events.jsonl")
+    errors = [e for e in events if e.event_type == "error"]
+    assert len(errors) == len(s.agents)
+    assert all(e.payload["stage"] == "parse" for e in errors)
+    assert all(e.payload["error"] == "invalid_json" for e in errors)
+
+
+def test_reactive_router_fallback_when_invalid_choice(tmp_path: Path):
+    """When router returns an unknown agent id, all agents should still speak."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.turn_order = "reactive"
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+    s.orchestration.enable_thought_phase = False
+    agent_ids: list[str] = []
+
+    def fac(i: int, msgs: list[dict[str, str]]) -> str:
+        sysm = msgs[0].get("content", "")
+        if "scene director" in sysm.lower():
+            return '{"next_agent_id":"unknown_agent"}'
+        agent_ids.append(msgs[0].get("content", "")[:20])
+        return '{"thought":"","say":"hi","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="rf1")
+    events = iter_events_jsonl(tmp_path / "rf1" / "events.jsonl")
+    router_ev = [e for e in events if e.event_type == "router"]
+    assert len(router_ev) == 1
+    assert router_ev[0].payload["chosen"] is None
+    messages = [e for e in events if e.event_type == "message"]
+    assert len(messages) == len(s.agents)

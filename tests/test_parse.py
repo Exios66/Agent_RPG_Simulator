@@ -49,3 +49,23 @@ def test_router_invalid_json_returns_none():
 
 def test_router_non_object_returns_none():
     assert parse_router_response("[1]", {"a"}) is None
+
+
+def test_parse_message_key_fallback():
+    p = parse_agent_json_response('{"thought":"","message":"via message key","directed_at":null}')
+    assert p.say == "via message key"
+    assert p.parse_error is None
+
+
+def test_parse_directed_at_null_string():
+    p = parse_agent_json_response('{"thought":"","say":"hi","directed_at":"null"}')
+    assert p.directed_at is None
+
+
+def test_router_next_alias():
+    assert parse_router_response('{"next":"bob"}', {"alice", "bob"}) == "bob"
+
+
+def test_router_fenced_json():
+    raw = '```json\n{"next_agent_id":"a"}\n```'
+    assert parse_router_response(raw, {"a", "b"}) == "a"
