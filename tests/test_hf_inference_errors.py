@@ -112,6 +112,27 @@ def test_generate_stream_accumulates_delta_content() -> None:
     assert fake_client.chat_completion.call_args.kwargs.get("stream") is True
 
 
+def test_generate_stream_skips_null_first_choice_uses_second() -> None:
+    """When ``choices[0]`` is null but a later entry has content, tokens must not be dropped."""
+    valid = MagicMock()
+    valid.delta = MagicMock(content="ok")
+    valid.message = None
+    chunk = MagicMock()
+    chunk.choices = [None, valid]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [chunk]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
+    assert out == "ok"
+
+
 def test_generate_stream_skips_null_choice() -> None:
     """Streaming chunks with missing choices must not raise (regression for #6)."""
     null_chunk = MagicMock()

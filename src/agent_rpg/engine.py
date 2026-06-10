@@ -86,6 +86,7 @@ class SimulationEngine:
         sql_store: SqliteEventStore | None = None
         if sqlite_path is not None:
             sql_store = SqliteEventStore(Path(sqlite_path))
+            sql_store.delete_run(rid)
         rng = random.Random(seed)
 
         orch = self.scenario.orchestration
