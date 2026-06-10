@@ -34,6 +34,30 @@ def test_engine_round_robin_stop_phrase(tmp_path: Path):
     assert any(e.event_type == "system" and e.payload.get("message") == "stopped_by_phrase" for e in events)
 
 
+def test_sqlite_rerun_same_run_id_replaces_not_appends(tmp_path: Path):
+    """Re-running with the same run_id must not leave stale SQLite rows (JSONL is overwritten)."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 1
+    s.world.max_rounds = 1
+
+    def fac(_i: int, _msgs: list[dict[str, str]]) -> str:
+        return '{"thought":"","say":"ok","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    db = tmp_path / "mirror.sqlite"
+    eng = SimulationEngine(s)
+    eng.run(backend, output_dir=tmp_path, run_id="rerun", sqlite_path=db)
+    import sqlite3
+
+    con = sqlite3.connect(db)
+    first_count = con.execute("select count(*) from events where run_id='rerun'").fetchone()[0]
+    assert first_count >= 1
+    eng.run(backend, output_dir=tmp_path, run_id="rerun", sqlite_path=db)
+    second_count = con.execute("select count(*) from events where run_id='rerun'").fetchone()[0]
+    assert second_count == first_count
+
+
 def test_engine_sqlite_mirror(tmp_path: Path):
     s = load_scenario("examples/scenarios/minimal.yaml")
     s.orchestration.enable_thought_phase = False

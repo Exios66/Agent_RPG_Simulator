@@ -90,19 +90,19 @@ class HuggingFaceInferenceBackend:
             try:
                 stream_iter = client.chat_completion(messages=messages, model=model_id, **extra)
                 for chunk in stream_iter:
-                    choice0 = chunk.choices[0] if getattr(chunk, "choices", None) else None
-                    if choice0 is None:
-                        continue
-                    delta = getattr(choice0, "delta", None)
-                    piece: str | None = None
-                    if delta is not None:
-                        piece = getattr(delta, "content", None)
-                    if not piece and getattr(choice0, "message", None) is not None:
-                        piece = getattr(choice0.message, "content", None)
-                    if isinstance(piece, str) and piece:
-                        parts.append(piece)
-                        if chunk_callback is not None:
-                            chunk_callback(piece)
+                    for choice0 in getattr(chunk, "choices", None) or []:
+                        if choice0 is None:
+                            continue
+                        delta = getattr(choice0, "delta", None)
+                        piece: str | None = None
+                        if delta is not None:
+                            piece = getattr(delta, "content", None)
+                        if not piece and getattr(choice0, "message", None) is not None:
+                            piece = getattr(choice0.message, "content", None)
+                        if isinstance(piece, str) and piece:
+                            parts.append(piece)
+                            if chunk_callback is not None:
+                                chunk_callback(piece)
             except HfHubHTTPError as e:
                 _reraise_inference_http_error(e)
             return "".join(parts)
