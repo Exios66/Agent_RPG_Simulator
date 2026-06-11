@@ -86,14 +86,46 @@ class SimulationEngine:
         sql_store: SqliteEventStore | None = None
         if sqlite_path is not None:
             sql_store = SqliteEventStore(Path(sqlite_path))
+            sql_store.clear_run(rid)
+
+        try:
+            return self._run_loop(
+                rid,
+                writer,
+                sql_store,
+                backend,
+                local_backend,
+                openrouter_backend,
+                seed,
+                on_event,
+                llm_extras,
+                base,
+            )
+        finally:
+            writer.close()
+            if sql_store is not None:
+                sql_store.close()
+
+    def _run_loop(
+        self,
+        rid: str,
+        writer: JsonlEventWriter,
+        sql_store: SqliteEventStore | None,
+        backend: LLMBackend,
+        local_backend: LLMBackend | None,
+        openrouter_backend: LLMBackend | None,
+        seed: int | None,
+        on_event: Callable[[SimulationEvent], None] | None,
+        llm_extras: dict[str, Any] | None,
+        base: Path,
+    ) -> Path:
         rng = random.Random(seed)
+        llm_kw = dict(llm_extras or {})
 
         orch = self.scenario.orchestration
         world = self.scenario.world
         max_rounds = orch.max_rounds or world.max_rounds
         agents = list(self.scenario.agents)
-
-        llm_kw = dict(llm_extras or {})
 
         _emit(
             writer,
@@ -251,9 +283,6 @@ class SimulationEngine:
                         ),
                         on_event,
                     )
-                    writer.close()
-                    if sql_store:
-                        sql_store.close()
                     return base
 
         _emit(
@@ -268,9 +297,6 @@ class SimulationEngine:
             ),
             on_event,
         )
-        writer.close()
-        if sql_store:
-            sql_store.close()
         return base
 
     def _speaker_order(

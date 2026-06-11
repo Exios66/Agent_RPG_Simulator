@@ -162,6 +162,9 @@ class OpenRouterBackend:
                     continue
                 if not isinstance(obj, dict):
                     continue
+                if "error" in obj:
+                    err = obj["error"]
+                    raise RuntimeError(f"OpenRouter stream error: {err!r}")
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
@@ -175,4 +178,6 @@ class OpenRouterBackend:
                             chunk_callback(piece)
         finally:
             resp.close()
+        if not parts:
+            raise RuntimeError("OpenRouter stream returned no content (empty choices or deltas).")
         return "".join(parts)

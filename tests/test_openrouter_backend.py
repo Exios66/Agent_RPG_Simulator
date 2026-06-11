@@ -196,6 +196,66 @@ def test_generate_stream_skips_non_object_sse_payload() -> None:
     assert out == "ok"
 
 
+def test_generate_stream_raises_on_sse_error_object() -> None:
+    lines = [
+        b'data: {"error":{"message":"Rate limit exceeded","code":429}}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="stream error"):
+            b.generate(
+                [{"role": "user", "content": "x"}],
+                model_id="m",
+                stream=True,
+            )
+
+
+def test_generate_stream_empty_content_raises() -> None:
+    lines = [
+        b'data: {"choices":[]}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="no content"):
+            b.generate(
+                [{"role": "user", "content": "x"}],
+                model_id="m",
+                stream=True,
+            )
+
+
 def test_generate_stream_skips_non_dict_delta() -> None:
     lines = [
         b'data: {"choices":[{"delta":"bad"},{"delta":{"content":"x"}}]}\n',
