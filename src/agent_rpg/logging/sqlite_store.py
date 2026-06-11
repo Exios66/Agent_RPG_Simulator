@@ -33,6 +33,11 @@ class SqliteEventStore:
         )
         self._conn.commit()
 
+    def clear_run(self, run_id: str) -> None:
+        """Remove prior events for ``run_id`` so SQLite mirrors a fresh JSONL run."""
+        self._conn.execute("DELETE FROM events WHERE run_id = ?", (run_id,))
+        self._conn.commit()
+
     def insert(self, event: SimulationEvent) -> None:
         self._conn.execute(
             "INSERT INTO events (timestamp, run_id, round, agent_id, event_type, payload) VALUES (?,?,?,?,?,?)",
