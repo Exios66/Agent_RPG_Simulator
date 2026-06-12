@@ -173,7 +173,11 @@ class TransformersLocalBackend:
         out = pipe(prompt, generation_config=gen_cfg, return_full_text=False)
         if not out:
             return ""
-        generated = out[0].get("generated_text", "")
+        first = out[0]
+        if isinstance(first, dict):
+            generated = first.get("generated_text", "")
+        else:
+            generated = str(first or "")
         if generated.startswith(prompt):
             return generated[len(prompt) :].strip()
         return generated.strip()

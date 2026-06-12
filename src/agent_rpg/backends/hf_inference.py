@@ -7,6 +7,20 @@ from huggingface_hub import InferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 
 
+def _normalize_message_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict) and "text" in block:
+                parts.append(str(block["text"]))
+            else:
+                parts.append(str(block))
+        return "".join(parts)
+    return str(content or "")
+
+
 def _reraise_inference_http_error(exc: HfHubHTTPError) -> None:
     """Add short operator hints for common Inference Provider / router failures."""
     resp = exc.response
@@ -99,10 +113,11 @@ class HuggingFaceInferenceBackend:
                         piece = getattr(delta, "content", None)
                     if not piece and getattr(choice0, "message", None) is not None:
                         piece = getattr(choice0.message, "content", None)
-                    if isinstance(piece, str) and piece:
-                        parts.append(piece)
+                    text = _normalize_message_content(piece) if piece is not None else ""
+                    if text:
+                        parts.append(text)
                         if chunk_callback is not None:
-                            chunk_callback(piece)
+                            chunk_callback(text)
             except HfHubHTTPError as e:
                 _reraise_inference_http_error(e)
             return "".join(parts)
@@ -122,16 +137,6 @@ class HuggingFaceInferenceBackend:
                 "Hugging Face chat completion returned invalid choice (expected object, got None); "
                 "check model_id, provider status, and quotas."
             )
-        msg = choice.message
-        content = getattr(msg, "content", None)
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            parts2: list[str] = []
-            for block in content:
-                if isinstance(block, dict) and "text" in block:
-                    parts2.append(str(block["text"]))
-                else:
-                    parts2.append(str(block))
-            return "".join(parts2)
-        return str(content or "")
+        msg = getattr(choice, "message", None)
+        content = getattr(msg, "content", None) if msg is not None else None
+        return _normalize_message_content(content)
