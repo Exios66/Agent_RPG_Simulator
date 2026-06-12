@@ -15,7 +15,12 @@ class OrchestrationConfig(BaseModel):
         description="If set, overrides world.max_rounds",
     )
     enable_thought_phase: bool = False
-    memory_turns: int = Field(default=20, ge=0, le=500)
+    memory_turns: int = Field(
+        default=20,
+        ge=0,
+        le=500,
+        description="How many prior transcript lines (agent messages) are included in conversation context",
+    )
     stop_phrase: str | None = Field(
         default=None,
         description="If any public message contains this phrase (case-insensitive), end simulation",

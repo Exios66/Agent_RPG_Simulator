@@ -164,7 +164,7 @@ class SimulationEngine:
                 )
                 # ``transcript[-0:]`` is the full list in Python (``-0`` == ``0``), so ``memory_turns == 0``
                 # must not use a negative slice — it would mean "unbounded memory" instead of none.
-                keep_lines = orch.memory_turns * 4
+                keep_lines = orch.memory_turns
                 if not transcript:
                     convo = "(silence so far)"
                 elif keep_lines <= 0:
