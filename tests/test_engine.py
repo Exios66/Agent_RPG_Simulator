@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pytest
 
@@ -129,3 +130,25 @@ def test_memory_turns_zero_omits_prior_transcript(tmp_path: Path):
     assert len(backend.calls) >= 3
     user3 = backend.calls[2][0][1].get("content", "")
     assert "EARLY_UNIQUE_LINE" not in user3
+
+
+def test_memory_turns_limits_transcript_lines(tmp_path: Path):
+    """``memory_turns`` is the number of prior transcript lines kept (not rounds × agent count)."""
+    s = load_scenario("examples/scenarios/minimal.yaml")
+    s.orchestration.memory_turns = 2
+    s.orchestration.enable_thought_phase = False
+    s.orchestration.max_rounds = 3
+    s.world.max_rounds = 3
+
+    def fac(i: int, _msgs: list[dict[str, str]]) -> str:
+        return json.dumps({"thought": "", "say": f"LINE_{i}", "directed_at": None})
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="m2")
+    # Fifth LLM call: alice round 2; transcript holds lines 0–3, memory_turns=2 keeps 2–3 only.
+    assert len(backend.calls) >= 5
+    user5 = backend.calls[4][0][1].get("content", "")
+    assert "LINE_2" in user5
+    assert "LINE_3" in user5
+    assert "LINE_0" not in user5
+    assert "LINE_1" not in user5

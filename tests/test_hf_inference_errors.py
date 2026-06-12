@@ -145,4 +145,35 @@ def test_generate_non_stream_list_content_blocks() -> None:
         b = HuggingFaceInferenceBackend(token="hf_test")
         out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
 
+def test_generate_non_stream_missing_message_attribute_returns_empty() -> None:
+    """Choices without a ``message`` attribute must not raise AttributeError."""
+    completion = MagicMock()
+    choice = MagicMock(spec=[])
+    choice.message = None
+    del choice.message
+    completion.choices = [choice]
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = completion
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate([{"role": "user", "content": "x"}], model_id="dummy/model")
+
+    assert out == ""
+
+
+def test_generate_stream_list_content_blocks() -> None:
+    fake_client = MagicMock()
+    fake_client.chat_completion.return_value = [
+        _chunk(message_content=[{"text": "part1"}, {"text": "part2"}]),
+    ]
+
+    with patch("agent_rpg.backends.hf_inference.InferenceClient", return_value=fake_client):
+        b = HuggingFaceInferenceBackend(token="hf_test")
+        out = b.generate(
+            [{"role": "user", "content": "x"}],
+            model_id="dummy/model",
+            stream=True,
+        )
+
     assert out == "part1part2"
