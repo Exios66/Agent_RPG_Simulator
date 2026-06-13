@@ -337,7 +337,8 @@ def build_random_scenario(
         enable_thought_phase=thought,
         memory_turns=int(mem),
         stop_phrase=stop,
-        reactive_router_model_id=mid if order == "reactive" else None,
+        # Leave unset; engine falls back to agents[0].model_id after assign_models_to_agents.
+        reactive_router_model_id=None,
     )
 
     return ScenarioConfig(world=world, agents=agents, orchestration=orch)

@@ -129,3 +129,31 @@ def test_memory_turns_zero_omits_prior_transcript(tmp_path: Path):
     assert len(backend.calls) >= 3
     user3 = backend.calls[2][0][1].get("content", "")
     assert "EARLY_UNIQUE_LINE" not in user3
+
+
+def test_reactive_router_uses_model_after_pool_assign(tmp_path: Path):
+    """Router must not keep the pre-assign default when pool assignment changes agent models."""
+    from agent_rpg.multi_model import assign_models_to_agents, set_router_model_if_reactive
+    from agent_rpg.random_scenario import build_random_scenario
+
+    s = build_random_scenario(
+        seed=0, num_agents=2, max_rounds=1, turn_order="reactive", model_id="stale-default"
+    )
+    s.orchestration.enable_thought_phase = False
+    assign_models_to_agents(s, ["router-target", "other-model"], strategy="rotate")
+    set_router_model_if_reactive(s, s.agents[0].model_id)
+
+    def fac(i: int, msgs: list[dict[str, str]]) -> str:
+        sysm = msgs[0].get("content", "")
+        if "scene director" in sysm.lower():
+            return '{"next_agent_id":"agent_0"}'
+        return '{"thought":"","say":"hi","directed_at":null}'
+
+    backend = FakeLLMBackend(factory=fac)
+    SimulationEngine(s).run(backend, output_dir=tmp_path, run_id="rx-router")
+    router_call = next(
+        opts
+        for (msgs, opts) in backend.calls
+        if "scene director" in msgs[0].get("content", "").lower()
+    )
+    assert router_call["model_id"] == "router-target"
