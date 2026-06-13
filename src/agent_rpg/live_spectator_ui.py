@@ -124,7 +124,8 @@ def build_live_spectator_widgets() -> LiveSpectatorWidgets:
             if labels
             else None,
             description=f"Agent {i + 1}",
-            layout=_CTRL_LAYOUT,
+            # Each row toggles layout.display independently; do not reuse _CTRL_LAYOUT.
+            layout=W.Layout(width="auto", min_width="28em"),
         )
         for i in range(MAX_AGENT_SLOTS)
     ]
