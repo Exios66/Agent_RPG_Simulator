@@ -225,3 +225,63 @@ def test_generate_stream_skips_non_dict_delta() -> None:
         )
 
     assert out == "x"
+
+
+def test_generate_stream_raises_when_only_error_events() -> None:
+    lines = [
+        b'data: {"error":{"message":"rate limited","code":429}}\n',
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="no content"):
+            b.generate(
+                [{"role": "user", "content": "x"}],
+                model_id="m",
+                stream=True,
+            )
+
+
+def test_generate_stream_raises_when_empty() -> None:
+    lines = [
+        b"data: []\n",
+        b"data: [DONE]\n",
+    ]
+
+    class FakeStream:
+        def __init__(self, data: list[bytes]) -> None:
+            self._data = data
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def read(self, n: int = -1) -> bytes:
+            raise AssertionError("streaming path must not call read()")
+
+        def close(self) -> None:
+            pass
+
+    stream = FakeStream(lines)
+    with patch("agent_rpg.backends.openrouter.urlopen", return_value=stream):
+        b = OpenRouterBackend(api_key="k")
+        with pytest.raises(RuntimeError, match="no content"):
+            b.generate(
+                [{"role": "user", "content": "x"}],
+                model_id="m",
+                stream=True,
+            )

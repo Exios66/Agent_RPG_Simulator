@@ -38,3 +38,26 @@ def test_set_router_model_if_reactive_sets_once():
     assign_models_to_agents(scenario, ["r1", "r2"], strategy="rotate")
     set_router_model_if_reactive(scenario, "router-model")
     assert scenario.orchestration.reactive_router_model_id == "router-model"
+
+
+def test_reactive_scenario_does_not_pin_router_model_at_build():
+    scenario = build_random_scenario(
+        seed=1, num_agents=2, max_rounds=1, turn_order="reactive", model_id="build-default"
+    )
+    assert scenario.orchestration.reactive_router_model_id is None
+
+
+def test_set_router_model_if_reactive_explicit_overrides_existing():
+    scenario = build_random_scenario(seed=2, num_agents=2, max_rounds=1, turn_order="reactive")
+    scenario.orchestration.reactive_router_model_id = "stale-router"
+    set_router_model_if_reactive(scenario, "fresh-router")
+    assert scenario.orchestration.reactive_router_model_id == "fresh-router"
+
+
+def test_reactive_router_syncs_after_assign_models():
+    scenario = build_random_scenario(
+        seed=3, num_agents=2, max_rounds=1, turn_order="reactive", model_id="stale-default"
+    )
+    assign_models_to_agents(scenario, ["router-target", "other-model"], strategy="rotate")
+    set_router_model_if_reactive(scenario, scenario.agents[0].model_id)
+    assert scenario.orchestration.reactive_router_model_id == "router-target"
