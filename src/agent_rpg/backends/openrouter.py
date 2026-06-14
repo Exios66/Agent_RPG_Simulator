@@ -146,6 +146,7 @@ class OpenRouterBackend:
 
     def _read_sse_stream(self, resp: Any, chunk_callback: Callable[[str], None] | None) -> str:
         parts: list[str] = []
+        stream_errors: list[Any] = []
         try:
             for raw_line in resp:
                 line = raw_line.decode("utf-8", errors="replace").strip()
@@ -162,6 +163,9 @@ class OpenRouterBackend:
                     continue
                 if not isinstance(obj, dict):
                     continue
+                if "error" in obj:
+                    stream_errors.append(obj["error"])
+                    continue
                 for choice in obj.get("choices") or []:
                     if not isinstance(choice, dict):
                         continue
@@ -175,4 +179,12 @@ class OpenRouterBackend:
                             chunk_callback(piece)
         finally:
             resp.close()
+        if not parts:
+            if stream_errors:
+                raise RuntimeError(
+                    f"OpenRouter stream returned no content; API error: {stream_errors[-1]!r}"
+                )
+            raise RuntimeError(
+                "OpenRouter stream returned no content; check model_id, quotas, and stream payload."
+            )
         return "".join(parts)
